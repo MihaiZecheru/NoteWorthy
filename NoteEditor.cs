@@ -1,8 +1,11 @@
 ﻿using Spectre.Console;
+using System.Linq;
 
 namespace NoteWorthy;
 internal class NoteEditor
 {
+    public static readonly int DISPLAY_HEIGHT = Console.BufferHeight - 2; // -2 for panel border on top and bottom
+
     /// <summary>
     /// The lines that make up the note
     /// </summary>
@@ -65,7 +68,13 @@ internal class NoteEditor
     /// <summary>
     /// If true, typing chars will insert them into the line. If false, typing chars will overwrite the whatever is at the cursor.
     /// </summary>
-    private bool insertModeOn = true;
+    private bool insertModeOn = Settings.GetSetting("write_mode") == "insert";
+
+    /// <summary>
+    /// The index of the line to display at the top of the editor.
+    /// Used for allowing scrolling. When the view is scrolled down by one, this value is incremented.
+    /// </summary>
+    private int display_lines_start_index = 0;
 
     /// <param name="note_path">File path of the note to show in the editor. Set NULL to not show any note</param>
     public NoteEditor(string? notePath)
@@ -74,6 +83,11 @@ internal class NoteEditor
         this.lines = new();
 
         if (this.note_path == null) return;
+
+        if (!File.Exists(this.note_path))
+        {
+            throw new FileNotFoundException();
+        }
 
         foreach (string line in File.ReadAllLines(this.note_path))
         {
@@ -117,7 +131,7 @@ internal class NoteEditor
     public void UpdateCursorPosInEditor()
     {
         int left = pos_in_line;
-        int top = line_num;
+        int top = line_num - display_lines_start_index;
 
         if (top > Console.BufferHeight - 2)
         {
@@ -166,8 +180,13 @@ internal class NoteEditor
         if (AtEndOfLine())
         {
             lines.Insert(line_num + 1, new List<char>());
-            line_num++;
             pos_in_line = 0;
+
+            if (lines.Count >= NoteEditor.DISPLAY_HEIGHT)
+            {
+                // Scroll the view down by one line
+                display_lines_start_index++;
+            }
         }
         else
         {
@@ -610,9 +629,11 @@ internal class NoteEditor
         }
 
         string unsaved_changes_indicator = unsaved_changes ? " *" : "";
+        List<List<char>> lines_to_display = lines.GetRange(display_lines_start_index, Math.Min(lines.Count, NoteEditor.DISPLAY_HEIGHT));
+
         return new Panel(
             new Markup(
-                string.Join("\n", lines.Select(
+                string.Join("\n", lines_to_display.Select(
                     (List<char> line) => new string(line.ToArray()).TrimEnd())
                 )
             )
@@ -623,7 +644,14 @@ internal class NoteEditor
 
     public void MoveCursorUp()
     {
-        if (line_num == 0) return;
+        if (line_num == 0 && display_lines_start_index == 0) return;
+        else if (line_num - display_lines_start_index == 0 && display_lines_start_index > 0)
+        {
+            // Scroll the view up by one line
+            display_lines_start_index--;
+            return;
+        }
+
         line_num--;
         if (pos_in_line > lines[line_num].Count)
         {
@@ -633,8 +661,13 @@ internal class NoteEditor
 
     public void MoveCursorDown()
     {
-        int last_line = lines.Count - 1;
-        if (line_num == last_line)
+        if (lines.Count > NoteEditor.DISPLAY_HEIGHT && line_num == NoteEditor.DISPLAY_HEIGHT + display_lines_start_index - 1 && lines.Count > NoteEditor.DISPLAY_HEIGHT + display_lines_start_index)
+        {
+            // Scroll the view down by one line
+            display_lines_start_index++;
+        }
+
+        if (OnLastLine())
         {
             int end_of_line = lines[line_num].Count;
             if (pos_in_line < end_of_line)
@@ -694,11 +727,39 @@ internal class NoteEditor
     {
         line_num = 0;
         pos_in_line = 0;
+        display_lines_start_index = 0;
     }
 
     public void MoveCursorToEndOfEditor()
     {
         line_num = lines.Count - 1;
         pos_in_line = lines[line_num].Count;
+        display_lines_start_index = lines.Count - NoteEditor.DISPLAY_HEIGHT;
+    }
+
+    public void MoveLineUp()
+    {
+        if (line_num == 0) return;
+        SaveState();
+
+        List<char> temp = lines[line_num];
+        lines[line_num] = lines[line_num - 1];
+        lines[line_num - 1] = temp;
+
+        line_num--;
+        unsaved_changes = true;
+    }
+
+    public void MoveLineDown()
+    {
+        if (line_num == lines.Count - 1) return;
+        SaveState();
+
+        List<char> temp = lines[line_num];
+        lines[line_num] = lines[line_num + 1];
+        lines[line_num + 1] = temp;
+
+        line_num++;
+        unsaved_changes = true;
     }
 }

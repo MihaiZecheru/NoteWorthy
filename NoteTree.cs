@@ -70,7 +70,7 @@ internal class NoteTree
             _treeItems = _treeItems.Skip(starting_display_index).ToList();
         }
 
-        TreeItem selected_tree_item = GetSelectedTreeItem();
+        TreeItem selected_tree_item = GetSelectedTreeItem()!;
         requires_update = false;
         string names_string = string.Join("\n", _treeItems.Select((TreeItem x) =>
             (x == selected_tree_item ? "[yellow]" : "[white]") + x.Name + (x.IsDir ? "/" : "") + "[/]"
@@ -170,8 +170,121 @@ internal class NoteTree
         Set_RequiresUpdate();
     }
 
-    public TreeItem GetSelectedTreeItem()
+    public TreeItem? GetSelectedTreeItem()
     {
+        List<TreeItem> items = GetTreeItemsForDisplay();
+        if (items.Count == 0) return null;
         return GetTreeItemsForDisplay()[starting_display_index];
+    }
+
+    /// <summary>
+    /// Prompt the user for a new folder name and create the folder inside of the current directory.
+    /// </summary>
+    /// <returns>Returns the path of the newly created file, or <see langword="null"/> if the user cancelled</returns>
+    public string? CreateFolder()
+    {
+        Console.Clear();
+        AnsiConsole.Write(new Markup("[yellow]Create a new folder[/]. Type a period '[yellow].[/]' to cancel.\n\n"));
+
+        string folder_name = AnsiConsole.Prompt(
+            new TextPrompt<string>("Enter the name of the folder:")
+                .Validate(name => !string.IsNullOrWhiteSpace(name) && !name.Contains('/'), "Folder name cannot be empty or contain '/'")
+        ).Trim();
+
+        if (folder_name == ".") return null;
+        string folder_path = Path.Combine(current_parent_treeItem?.FilePath ?? Program.NOTES_DIR_PATH, folder_name);
+
+        Directory.CreateDirectory(folder_path);
+        var treeItem = new TreeItem(folder_path, current_parent_treeItem);
+        treeItem.SetDirectory(new List<TreeItem>());
+        if (current_parent_treeItem == null)
+            treeItems.Add(treeItem);
+        else current_parent_treeItem!.AddChild(treeItem);
+        return folder_path;
+    }
+
+    /// <summary>
+    /// Prompt the user for a new file name and create the file inside of the current directory.
+    /// </summary>
+    /// <returns>The path of the newly-created file. <see langword="null"/> if the user cancelled.</returns>
+    public string? CreateFile()
+    {
+        Console.Clear();
+        AnsiConsole.Write(new Markup("[yellow]Create a new file[/]. Type a period '[yellow].[/]' to cancel.\n\n"));
+
+        List<TreeItem> treeItemsInDir = GetTreeItemsForDisplay();
+        string file_name = AnsiConsole.Prompt(
+            new TextPrompt<string>("Enter the name of the file:")
+                .Validate(name => !string.IsNullOrWhiteSpace(name) && !name.Contains('/') && !name.Contains('\\'), "Folder name cannot be empty or contain '/' or '\\")
+                .Validate(name =>
+                {
+                    for (int i = 0; i < treeItemsInDir.Count; i++)
+                    {
+                        if (treeItemsInDir[i].Name == name || treeItemsInDir[i].Name == name + ".nw") return false;
+                    }
+
+                    return true;
+                }, "A file with that name already exists in this directory.")
+        ).Trim();
+
+        if (file_name == ".") return null;
+        if (!file_name.EndsWith(".nw"))
+            file_name += ".nw";
+
+        string file_path = Path.Combine(current_parent_treeItem?.FilePath ?? Program.NOTES_DIR_PATH, file_name);
+        File.Create(file_path).Close();
+        if (current_parent_treeItem == null)
+            treeItems.Add(new TreeItem(file_path, current_parent_treeItem));
+        else current_parent_treeItem!.AddChild(new TreeItem(file_path, current_parent_treeItem));
+        return file_path;
+    }
+
+    /// <summary>
+    /// Set the currently selected tree item to the TreeItem with the given path
+    /// </summary>
+    /// <param name="path">The path to the tree item in the file system</param>
+    public void NavigateToTreeItemInCurrentDirByPath(string path)
+    {
+        List<TreeItem> nodes = GetTreeItemsForDisplay();
+        for (int i = 0; i < nodes.Count; i++)
+        {
+            if (nodes[i].FilePath == path)
+            {
+                starting_display_index = i;
+                Set_RequiresUpdate();
+                return;
+            }
+        }
+    }
+
+    public void DeleteSelectedTreeItem()
+    {
+        TreeItem? selected_tree_item = GetSelectedTreeItem();
+        if (selected_tree_item == null) return;
+
+        if (selected_tree_item.IsDir)
+        {
+            Directory.Delete(selected_tree_item.FilePath, true);
+        }
+        else
+        {
+            File.Delete(selected_tree_item.FilePath);
+        }
+
+        if (current_parent_treeItem == null)
+        {
+            treeItems.Remove(selected_tree_item);
+        }
+        else
+        {
+            current_parent_treeItem.Children.Remove(selected_tree_item);
+        }
+
+        if (starting_display_index >= GetTreeItemsForDisplay().Count)
+        {
+            starting_display_index = GetTreeItemsForDisplay().Count - 1;
+        }
+
+        Set_RequiresUpdate();
     }
 }
