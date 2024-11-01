@@ -204,7 +204,12 @@ class Program
 
                 // Ctrl+8 - Open the settings file
                 case ConsoleKey.D8:
-                    Process.Start("notepad.exe", "settings.json");
+                    string settings_filepath = Path.Combine(Directory.GetCurrentDirectory(), "settings.txt");
+                    if (!File.Exists(settings_filepath))
+                    {
+                        Settings.CreateDefaultSettingsFile();
+                    }
+                    Process.Start("notepad.exe", settings_filepath);
                     break;
             }
         }
