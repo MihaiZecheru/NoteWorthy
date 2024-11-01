@@ -88,7 +88,7 @@ internal class ColorChar
 
     public static bool operator !=(ColorChar left, char right)
     {
-        return left.Char == right;
+        return left.Char != right;
     }
 
     /// <summary>
