@@ -13,9 +13,9 @@ internal class NoteTree
     private TreeItem? current_parent_treeItem = null;
 
     /// <summary>
-    /// The index of the first TreeItem to display. Used for when there's too many TreeItems to display at once.
+    /// The index of the selected TreeItem
     /// </summary>
-    private int starting_display_index = 0;
+    private int selected_item_index = 0;
 
     /// <summary>
     /// True when the display should be updated.
@@ -55,7 +55,7 @@ internal class NoteTree
     /// </summary>
     public Panel GenerateDisplayPanel()
     {
-        List<TreeItem> _treeItems = GetTreeItemsForDisplay();
+        List<TreeItem> _treeItems = GetParentTreeItemChildren();
 
         if (_treeItems.Count == 0)
         {
@@ -67,7 +67,7 @@ internal class NoteTree
 
         if (_treeItems.Count > Console.BufferHeight - 2)
         {
-            _treeItems = _treeItems.Skip(starting_display_index).ToList();
+            _treeItems = _treeItems.Skip(selected_item_index).ToList();
         }
 
         TreeItem selected_tree_item = GetSelectedTreeItem()!;
@@ -87,7 +87,7 @@ internal class NoteTree
     /// 
     /// If the current parent is null, then the root directory is being displayed.
     /// </summary>
-    private List<TreeItem> GetTreeItemsForDisplay()
+    private List<TreeItem> GetParentTreeItemChildren()
     {
         if (current_parent_treeItem == null)
         {
@@ -102,8 +102,9 @@ internal class NoteTree
     /// <param name="treeItem">Set to <see langword="null" /> to navigate to the root directory.</param>
     public void NavigateToTreeItem(TreeItem? treeItem)
     {
+        if (treeItem != null && !treeItem.IsDir) throw new Exception("Cannot navigate to a file.");
         current_parent_treeItem = treeItem;
-        starting_display_index = 0;
+        selected_item_index = 0;
         Set_RequiresUpdate();
     }
 
@@ -134,47 +135,48 @@ internal class NoteTree
 
     public void MoveSelectionUp()
     {
-        if (starting_display_index == 0)
+        if (selected_item_index == 0)
         {
             MoveSelectionToBottom();
         }
         else
         {
-            starting_display_index--;
+            selected_item_index--;
             Set_RequiresUpdate();
         }
     }
 
     public void MoveSelectionDown()
     {
-        if (starting_display_index == GetTreeItemsForDisplay().Count - 1)
+        var x = GetParentTreeItemChildren().Count - 1;
+        if (selected_item_index == GetParentTreeItemChildren().Count - 1)
         {
             MoveSelectionToTop();
         }
         else
         {
-            starting_display_index++;
+            selected_item_index++;
             Set_RequiresUpdate();
         }
     }
 
     public void MoveSelectionToTop()
     {
-        starting_display_index = 0;
+        selected_item_index = 0;
         Set_RequiresUpdate();
     }
 
     public void MoveSelectionToBottom()
     {
-        starting_display_index = GetTreeItemsForDisplay().Count - 1;
+        selected_item_index = GetParentTreeItemChildren().Count - 1;
         Set_RequiresUpdate();
     }
 
     public TreeItem? GetSelectedTreeItem()
     {
-        List<TreeItem> items = GetTreeItemsForDisplay();
+        List<TreeItem> items = GetParentTreeItemChildren();
         if (items.Count == 0) return null;
-        return GetTreeItemsForDisplay()[starting_display_index];
+        return GetParentTreeItemChildren()[selected_item_index];
     }
 
     /// <summary>
@@ -212,7 +214,7 @@ internal class NoteTree
         Console.Clear();
         AnsiConsole.Write(new Markup("[yellow]Create a new file[/]. Type a period '[yellow].[/]' to cancel.\n\n"));
 
-        List<TreeItem> treeItemsInDir = GetTreeItemsForDisplay();
+        List<TreeItem> treeItemsInDir = GetParentTreeItemChildren();
         string file_name = AnsiConsole.Prompt(
             new TextPrompt<string>("Enter the name of the file:")
                 .Validate(name => !string.IsNullOrWhiteSpace(name) && !name.Contains('/') && !name.Contains('\\'), "Folder name cannot be empty or contain '/' or '\\")
@@ -245,12 +247,12 @@ internal class NoteTree
     /// <param name="path">The path to the tree item in the file system</param>
     public void NavigateToTreeItemInCurrentDirByPath(string path)
     {
-        List<TreeItem> nodes = GetTreeItemsForDisplay();
+        List<TreeItem> nodes = GetParentTreeItemChildren();
         for (int i = 0; i < nodes.Count; i++)
         {
             if (nodes[i].FilePath == path)
             {
-                starting_display_index = i;
+                selected_item_index = i;
                 Set_RequiresUpdate();
                 return;
             }
@@ -280,11 +282,52 @@ internal class NoteTree
             current_parent_treeItem.Children.Remove(selected_tree_item);
         }
 
-        if (starting_display_index >= GetTreeItemsForDisplay().Count)
+        if (selected_item_index >= GetParentTreeItemChildren().Count)
         {
-            starting_display_index = GetTreeItemsForDisplay().Count - 1;
+            selected_item_index = GetParentTreeItemChildren().Count - 1;
         }
 
         Set_RequiresUpdate();
+    }
+
+    /// <summary>
+    /// Get the next note file in the current directory.
+    /// </summary>
+    /// <returns>True if the next tree item was able to be selected.
+    /// Will be false if there was no selected tree item in the first place or if the currently selected tree item is a directory</returns>
+    public bool SelectNextFileTreeItem()
+    {
+        // No file is selected, so you can't go to the next file
+        if (GetSelectedTreeItem() == null || GetSelectedTreeItem()!.IsDir) return false;
+        List<TreeItem> tree_items = GetParentTreeItemChildren().Where(x => !x.IsDir).ToList();
+        
+        // If the selected file is the last file, select the top file
+        if (tree_items.IndexOf(GetSelectedTreeItem()!) == tree_items.Count - 1)
+        {
+            selected_item_index = GetParentTreeItemChildren().IndexOf(treeItems[0]);
+            return true;
+        }
+
+        selected_item_index = tree_items.IndexOf(GetSelectedTreeItem()!) + 1;
+        requires_update = true;
+        return true;
+    }
+
+    public bool SelectPreviousFileTreeItem()
+    {
+        // No file is selected, so you can't go to the previous file
+        if (GetSelectedTreeItem() == null || GetSelectedTreeItem()!.IsDir) return false;
+        List<TreeItem> tree_items = GetParentTreeItemChildren().Where(x => !x.IsDir).ToList();
+
+        // If the selected file is the first file, select the last file
+        if (tree_items.IndexOf(GetSelectedTreeItem()!) == 0)
+        {
+            selected_item_index = GetParentTreeItemChildren().IndexOf(treeItems[tree_items.Count - 1]);
+            return true;
+        }
+
+        selected_item_index = tree_items.IndexOf(GetSelectedTreeItem()!) - 1;
+        requires_update = true;
+        return true;
     }
 }

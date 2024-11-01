@@ -295,6 +295,22 @@ class Program
                     noteTree.Set_RequiresUpdate();
                     noteEditorRequiresUpdate = true;
                     break;
+
+                // N - Create new file (Ctrl+N also does this)
+                case ConsoleKey.N:
+                    HandleCreateNewFile();
+                    break;
+
+                // M - Create new folder (Ctrl+M also does this)
+                case ConsoleKey.M:
+                    HandleCreateNewFolder();
+                    break;
+
+                // Delete | Backspace - Delete the selected tree item (Ctrl+D also does this)
+                case ConsoleKey.Delete:
+                case ConsoleKey.Backspace:
+                    HandleDeleteTreeItem();
+                    break;
             }
         }
     }
@@ -404,20 +420,6 @@ class Program
                     noteEditorRequiresUpdate = true;
                     break;
 
-                // Ctrl+UpArrow - Move line up
-                case ConsoleKey.UpArrow:
-                case ConsoleKey.PageUp:
-                    noteEditor.MoveLineUp();
-                    noteEditorRequiresUpdate = true;
-                    break;
-
-                // Ctrl+DownArrow - Move line down
-                case ConsoleKey.DownArrow:
-                case ConsoleKey.PageDown:
-                    noteEditor.MoveLineDown();
-                    noteEditorRequiresUpdate = true;
-                    break;
-
                 // Ctrl+K - Toggle insert mode
                 case ConsoleKey.K:
                     noteEditor.ToggleInsertMode();
@@ -455,6 +457,32 @@ class Program
                 case ConsoleKey.D8:
                     Process.Start("notepad.exe", "settings.json");
                     break;
+
+                // Ctrl+DownArrow - navigate to the next note (downwards)
+                case ConsoleKey.DownArrow:
+                case ConsoleKey.PageDown:
+                    // success == true if the next tree item was able to be selected
+                    bool success = noteTree.SelectNextFileTreeItem();
+                    if (success)
+                    {
+                        noteEditor = new NoteEditor(noteTree.GetSelectedTreeItem()!.FilePath);
+                        noteEditorRequiresUpdate = true;
+                        noteTree.Set_RequiresUpdate();
+                    }
+                    break;
+
+                // Ctrl+UpArrow - navigate to previous note (upwards)
+                case ConsoleKey.UpArrow:
+                case ConsoleKey.PageUp:
+                    // success == true if the selected tree item was changed to the next tree item
+                    bool _success = noteTree.SelectPreviousFileTreeItem();
+                    if (_success)
+                    {
+                        noteEditor = new NoteEditor(noteTree.GetSelectedTreeItem()!.FilePath);
+                        noteEditorRequiresUpdate = true;
+                        noteTree.Set_RequiresUpdate();
+                    }
+                    break;
             }
         }
         // For functionality with regular keypresses
@@ -476,15 +504,25 @@ class Program
                     noteEditorRequiresUpdate = true;
                     break;
 
-                // Navigate the cursor up in the editor
+                // UpArrow - Navigate the cursor up in the editor
+                // Shift+UpArrow - Move line up
                 case ConsoleKey.UpArrow:
-                    noteEditor.MoveCursorUp();
+                    if (keyInfo.Modifiers.HasFlag(ConsoleModifiers.Shift))
+                        noteEditor.MoveLineUp();
+                    else
+                        noteEditor.MoveCursorUp();
+
                     noteEditorRequiresUpdate = true;
                     break;
 
-                // Navigate the cursor down in the editor
+                // DownArrow - Navigate the cursor down in the editor
+                // Shift+DownArrow - Move line down
                 case ConsoleKey.DownArrow:
-                    noteEditor.MoveCursorDown();
+                    if (keyInfo.Modifiers.HasFlag(ConsoleModifiers.Shift))
+                        noteEditor.MoveLineDown();
+                    else
+                        noteEditor.MoveCursorDown();
+                    
                     noteEditorRequiresUpdate = true;
                     break;
 
