@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using System.Diagnostics;
 
 namespace NoteWorthy;
 
@@ -12,10 +13,7 @@ internal static class Settings
     /// </summary>
     public static ReadOnlyDictionary<string, string> LoadSettings()
     {
-        if (!File.Exists(file_path))
-        {
-            CreateDefaultSettingsFile();
-        }
+        if (!SettingsFileExists()) CreateDefaultSettingsFile();
 
         string[] lines = File.ReadAllLines(file_path);
 
@@ -48,10 +46,20 @@ internal static class Settings
         File.WriteAllText(file_path, @"write_mode=insert // options: insert | overwrite - default char insert behaviour
 theme=gray // options: gray | white | black - app color theme
 
-// color options: blue | red | green | yellow | purple | cyan | white | black | gray | orange
+// color options: blue | red | green | yellow | purple | light_purple | cyan | white | black | gray | orange
 primary_color=blue // custom text color for ctrl+b
 secondary_color=red // custom text color for ctrl+i
 tertiary_color=green // custom text color for ctrl+u
 ");
+    }
+
+    public static void OpenSettingsFile()
+    {
+        Process.Start("notepad.exe", file_path);
+    }
+
+    public static bool SettingsFileExists()
+    {
+        return File.Exists(file_path);
     }
 }
