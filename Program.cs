@@ -7,7 +7,7 @@ namespace NoteWorthy;
 class Program
 {
     public static Spectre.Console.Style DefaultStyle = new Style(Color.White, Color.Grey46);
-    public static string NOTES_DIR_PATH = Directory.GetCurrentDirectory() + "\\notes";
+    public static string NOTES_DIR_PATH = Path.Combine(Directory.GetCurrentDirectory(), "notes");
 
     private static NoteTree noteTree = new NoteTree();
     private static NoteEditor noteEditor = new NoteEditor(null);
@@ -204,12 +204,11 @@ class Program
 
                 // Ctrl+8 - Open the settings file
                 case ConsoleKey.D8:
-                    string settings_filepath = Path.Combine(Directory.GetCurrentDirectory(), "settings.txt");
-                    if (!File.Exists(settings_filepath))
+                    if (!Settings.SettingsFileExists())
                     {
                         Settings.CreateDefaultSettingsFile();
                     }
-                    Process.Start("notepad.exe", settings_filepath);
+                    Settings.OpenSettingsFile();
                     break;
             }
         }
