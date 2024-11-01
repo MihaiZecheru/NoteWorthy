@@ -1,5 +1,6 @@
 ﻿using Spectre.Console;
 using System.Linq;
+using System.Text;
 
 namespace NoteWorthy;
 internal class NoteEditor
@@ -9,7 +10,7 @@ internal class NoteEditor
     /// <summary>
     /// The lines that make up the note
     /// </summary>
-    private List<List<char>> lines;
+    private List<List<ColorChar>> lines;
 
     /// <summary>
     /// The history of the note. Used for undoing changes with Ctrl+Z.
@@ -19,7 +20,7 @@ internal class NoteEditor
     /// The type of this stack is a tuple of the previous content of the note and the cursor position
     /// </summary>
     private LimitedStack<(
-        List<List<char>> note_content,
+        List<List<ColorChar>> note_content,
         (int cursor_line_num, int cursor_pos_in_line)
     )> history = new(maxSize: 75);
 
@@ -30,7 +31,7 @@ internal class NoteEditor
     /// Is not a limited stack because the redoStack can only hold as much as is in the history stack
     /// </summary>
     private Stack<(
-        List<List<char>> note_content,
+        List<List<ColorChar>> note_content,
         (int cursor_line_num, int cursor_pos_in_line)
     )> redoStack = new();
 
@@ -71,16 +72,26 @@ internal class NoteEditor
     private bool insertModeOn = Settings.GetSetting("write_mode") == "insert";
 
     /// <summary>
-    /// The index of the line to display at the top of the editor.
-    /// Used for allowing scrolling. When the view is scrolled down by one, this value is incremented.
+    /// If the primary color is on, the next char will be colored with the primary color.
     /// </summary>
-    private int display_lines_start_index = 0;
+    private bool primary_color_on = false;
+
+    /// <summary>
+    /// If the secondary color is on, the next char will be colored with the secondary color.
+    /// </summary>
+    private bool secondary_color_on = false;
+
+    /// <summary>
+    /// If the tertiary color is on, the next char will be colored with the tertiary color.
+    /// </summary>
+    private bool tertiary_color_on = false;
 
     /// <param name="note_path">File path of the note to show in the editor. Set NULL to not show any note</param>
     public NoteEditor(string? notePath)
     {
         this.note_path = notePath;
         this.lines = new();
+        this.lines.Add(new List<ColorChar>());
 
         if (this.note_path == null) return;
 
@@ -89,14 +100,24 @@ internal class NoteEditor
             throw new FileNotFoundException();
         }
 
-        foreach (string line in File.ReadAllLines(this.note_path))
+        byte[] bytes = File.ReadAllBytes(this.note_path);
+        // There will always be an even number of bytes in the file because each char byte has a corresponding color byte
+        for (int i = 0; i < bytes.LongLength; i += 2)
         {
-            this.lines.Add(line.ToList());
-        }
+            byte c = bytes[i];
+            byte color = bytes[i + 1];
 
-        if (this.lines.Count == 0)
-        {
-            this.lines.Add(new List<char>());
+            if (c == (byte)'\n')
+            {
+                // Create a new line. In this loading process,
+                // future chars will be appended to this line until another line is made.
+                lines.Add(new List<ColorChar>());
+            }
+            else
+            {
+                // Append the char to the note
+                lines[lines.Count - 1].Add(new ColorChar(c, color));
+            }
         }
     }
 
@@ -112,7 +133,7 @@ internal class NoteEditor
         chars_since_last_state_save = 0;
 
         // Deep copy the note to save its state.
-        List<List<char>> noteCopy = lines.Select(line => new List<char>(line)).ToList();
+        List<List<ColorChar>> noteCopy = lines.Select(line => new List<ColorChar>(line)).ToList();
         history.Push(
             (note_content: noteCopy, (cursor_line_num: line_num, cursor_pos_in_line: pos_in_line))
         );
@@ -131,7 +152,7 @@ internal class NoteEditor
     public void UpdateCursorPosInEditor()
     {
         int left = pos_in_line;
-        int top = line_num - display_lines_start_index;
+        int top = line_num;
 
         if (top > Console.BufferHeight - 2)
         {
@@ -159,7 +180,14 @@ internal class NoteEditor
         SaveState();
 
         // If there is only one line, there aren't enough lines to delete
-        if (lines.Count == 1) return;
+        if (lines.Count == 1 && lines[0].Count == 0) return;
+        else if (lines.Count == 1)
+        {
+            // Delete the line by replacing it with an empty one
+            lines[0] = new();
+            pos_in_line = 0;
+            return;
+        }
 
         lines.RemoveAt(line_num);
         if (line_num == lines.Count)
@@ -177,24 +205,20 @@ internal class NoteEditor
     {
         SaveState();
 
+        if (lines.Count == NoteEditor.DISPLAY_HEIGHT) return;
+
         if (AtEndOfLine())
         {
-            lines.Insert(line_num + 1, new List<char>());
+            lines.Insert(line_num + 1, new List<ColorChar>());
             pos_in_line = 0;
-
-            if (lines.Count >= NoteEditor.DISPLAY_HEIGHT)
-            {
-                // Scroll the view down by one line
-                display_lines_start_index++;
-            }
         }
         else
         {
             AnsiConsole.Cursor.Hide();
 
             // Pressing enter while not at the end of the line will take the text to the right of the cursor and move it to the newly-created line
-            List<char> current_line = lines[line_num].Slice(0, pos_in_line);
-            List<char> newline = lines[line_num].Slice(pos_in_line, lines[line_num].Count - pos_in_line);
+            List<ColorChar> current_line = lines[line_num].Slice(0, pos_in_line);
+            List<ColorChar> newline = lines[line_num].Slice(pos_in_line, lines[line_num].Count - pos_in_line);
 
             // Rewrite current line and append the new line
             lines[line_num] = current_line;
@@ -202,11 +226,10 @@ internal class NoteEditor
 
             // Move cursor to beginning of new line
             pos_in_line = 0;
-            line_num++;
-
             AnsiConsole.Cursor.Show();
         }
 
+        line_num++;
         unsaved_changes = true;
     }
 
@@ -219,29 +242,85 @@ internal class NoteEditor
         HandlePossibleStateSave();
 
         if (LineIsFull()) return;
-        
+
+        // If the char is not ascii
+        if (c < 0 || c > 127)
+        {
+            c = RemoveDiacritics(c);
+        }
+
+        ColorChar _char;
+        if (primary_color_on || secondary_color_on || tertiary_color_on)
+        {
+            string? color = Settings.GetSetting(
+                primary_color_on ? "primary_color" : secondary_color_on ? "secondary_color" : "teriary_color"
+            );
+            _char = new ColorChar((byte)c, color);
+        }
+        else
+        {
+            _char = new ColorChar((byte)c, (Color?)null);
+        }
+
         if (AtEndOfLine())
         {
             // Just add the character to the end of the line if the cursor is at the end of the line,
             // regardless of the mode (insert or overwrite)
-            lines[line_num].Add(c);
+            lines[line_num].Add(_char);
         }
         else
         {
             if (insertModeOn)
             {
                 // Insert the char at the current position
-                lines[line_num].Insert(pos_in_line, c);
+                lines[line_num].Insert(pos_in_line, _char);
             }
             else
             {
                 // Overwrite the char at the current positon
-                lines[line_num][pos_in_line] = c;
+                lines[line_num][pos_in_line] = _char;
             }
         }
 
         unsaved_changes = true;
         pos_in_line++;
+    }
+
+    /// <summary>
+    /// Map of ascii char to unicode char with diacritics. Used in <see cref="RemoveDiacritics(char)"/>
+    /// </summary>
+    private static Dictionary<char, char[]> diacritics = new Dictionary<char, char[]>()
+    {
+        { 'A', new char[] { 'À', 'Á', 'Â', 'Ã', 'Ä', 'Å' } },
+        { 'E', new char[] { 'È', 'É', 'Ê', 'Ë' } },
+        { 'I', new char[] { 'Ì', 'Í', 'Î', 'Ï' } },
+        { 'O', new char[] { 'Ò', 'Ó', 'Ô', 'Õ', 'Ö' } },
+        { 'U', new char[] { 'Ù', 'Ú', 'Û', 'Ü' } },
+        { 'Y', new char[] { 'Ý' } },
+        { 'C', new char[] { 'Ç' } },
+        { 'D', new char[] { 'Ð' } },
+        { 'N', new char[] { 'Ñ' } },
+        { 'a', new char[] { 'à', 'á', 'â', 'ã', 'ä', 'å' } },
+        { 'e', new char[] { 'è', 'é', 'ê', 'ë' } },
+        { 'i', new char[] { 'ì', 'í', 'î', 'ï' } },
+        { 'o', new char[] { 'ò', 'ó', 'ô', 'õ', 'ö' } },
+        { 'u', new char[] { 'ù', 'ú', 'û', 'ü' } },
+        { 'y', new char[] { 'ý' } },
+        { 'c', new char[] { 'ç' } },
+        { 'n', new char[] { 'ñ' } }
+    };
+
+    private char RemoveDiacritics(char c)
+    {
+        foreach (KeyValuePair<char, char[]> entry in NoteEditor.diacritics)
+        {
+            if (entry.Value.Contains(c))
+            {
+                return entry.Key;
+            }
+        }
+
+        return '?';
     }
 
     /// <summary>
@@ -492,13 +571,13 @@ internal class NoteEditor
         if (history.IsEmpty) return;
 
         // Save the current state to the redo stack with a deep copy
-        List<List<char>> noteCopy = lines.Select(line => new List<char>(line)).ToList();
+        List<List<ColorChar>> noteCopy = lines.Select(line => new List<ColorChar>(line)).ToList();
         redoStack.Push(
             (note_content: noteCopy, (cursor_line_num: line_num, cursor_pos_in_line: pos_in_line))
         );
 
         // Get the last state from the history stack
-        ( List<List<char>> note_content,
+        ( List<List<ColorChar>> note_content,
           (int cursor_line_num, int cursor_pos_in_line) ) lastState = history.Pop();
         lines = lastState.note_content;
         line_num = lastState.Item2.cursor_line_num;
@@ -511,13 +590,13 @@ internal class NoteEditor
         if (redoStack.Count == 0) return;
 
         // Save the current state to the history stack with a deep copy
-        List<List<char>> noteCopy = lines.Select(line => new List<char>(line)).ToList();
+        List<List<ColorChar>> noteCopy = lines.Select(line => new List<ColorChar>(line)).ToList();
         history.Push(
             (note_content: noteCopy, (cursor_line_num: line_num, cursor_pos_in_line: pos_in_line))
         );
 
         // Get the last state from the redo stack
-        (List<List<char>> note_content,
+        (List<List<ColorChar>> note_content,
           (int cursor_line_num, int cursor_pos_in_line)) lastState = redoStack.Pop();
         lines = lastState.note_content;
         line_num = lastState.Item2.cursor_line_num;
@@ -609,10 +688,27 @@ internal class NoteEditor
 
         // Note: do not call SaveState() in this function. It will create double entries in the history stack
 
-        File.WriteAllLines(
+        // Get bytes
+        List<byte> bytes = new();
+        foreach (List<ColorChar> line in this.lines)
+        {
+            foreach (ColorChar c in line)
+            {
+                (byte _char, byte _color) = c.GetBytes();
+                bytes.Add(_char);
+                bytes.Add(_color);
+            }
+
+            // Colorless new-line
+            bytes.Add((byte)'\n');
+            bytes.Add(0);
+        }
+
+        File.WriteAllBytes(
             this.note_path,
-            lines.Select((List<char> line) => new string(line.ToArray()).TrimEnd())
+            bytes.ToArray()
         );
+
         unsaved_changes = false;
     }
 
@@ -629,28 +725,14 @@ internal class NoteEditor
         }
 
         string unsaved_changes_indicator = unsaved_changes ? " *" : "";
-        List<List<char>> lines_to_display = lines.GetRange(display_lines_start_index, Math.Min(lines.Count, NoteEditor.DISPLAY_HEIGHT));
-
-        return new Panel(
-            new Markup(
-                string.Join("\n", lines_to_display.Select(
-                    (List<char> line) => new string(line.ToArray()).TrimEnd())
-                )
-            )
-        ).Header($"[yellow] {Path.GetFileName(note_path)}{unsaved_changes_indicator} [/]")
+        return new Panel(GetDisplayMarkup()).Header($"[yellow] {Path.GetFileName(note_path)}{unsaved_changes_indicator} [/]")
          .Expand()
          .RoundedBorder();
     }
 
     public void MoveCursorUp()
     {
-        if (line_num == 0 && display_lines_start_index == 0) return;
-        else if (line_num - display_lines_start_index == 0 && display_lines_start_index > 0)
-        {
-            // Scroll the view up by one line
-            display_lines_start_index--;
-            return;
-        }
+        if (line_num == 0) return;
 
         line_num--;
         if (pos_in_line > lines[line_num].Count)
@@ -661,12 +743,6 @@ internal class NoteEditor
 
     public void MoveCursorDown()
     {
-        if (lines.Count > NoteEditor.DISPLAY_HEIGHT && line_num == NoteEditor.DISPLAY_HEIGHT + display_lines_start_index - 1 && lines.Count > NoteEditor.DISPLAY_HEIGHT + display_lines_start_index)
-        {
-            // Scroll the view down by one line
-            display_lines_start_index++;
-        }
-
         if (OnLastLine())
         {
             int end_of_line = lines[line_num].Count;
@@ -727,14 +803,12 @@ internal class NoteEditor
     {
         line_num = 0;
         pos_in_line = 0;
-        display_lines_start_index = 0;
     }
 
     public void MoveCursorToEndOfEditor()
     {
         line_num = lines.Count - 1;
         pos_in_line = lines[line_num].Count;
-        display_lines_start_index = lines.Count - NoteEditor.DISPLAY_HEIGHT;
     }
 
     public void MoveLineUp()
@@ -742,7 +816,7 @@ internal class NoteEditor
         if (line_num == 0) return;
         SaveState();
 
-        List<char> temp = lines[line_num];
+        List<ColorChar> temp = lines[line_num];
         lines[line_num] = lines[line_num - 1];
         lines[line_num - 1] = temp;
 
@@ -755,11 +829,41 @@ internal class NoteEditor
         if (line_num == lines.Count - 1) return;
         SaveState();
 
-        List<char> temp = lines[line_num];
+        List<ColorChar> temp = lines[line_num];
         lines[line_num] = lines[line_num + 1];
         lines[line_num + 1] = temp;
 
         line_num++;
         unsaved_changes = true;
+    }
+
+    private Markup GetDisplayMarkup()
+    {
+        string s = "";
+        this.lines.ForEach(line =>
+        {
+            line.ForEach((ColorChar c) =>
+            {
+               if (c.Color == null)
+               {
+                   s += c.Char;
+               }
+                else
+                {
+                    s += $"[{c.Color.Value}]{c.Char}[/]";
+                }
+            });
+            s += "\n";
+        });
+
+        // this.lines will always have at least 1 line
+        if (this.lines.Count == 1)
+        {
+            return new Markup(s.Substring(0, s.Length - 1));
+        }
+        else
+        {
+            return new Markup(s);
+        }
     }
 }
