@@ -148,7 +148,6 @@ internal class NoteTree
 
     public void MoveSelectionDown()
     {
-        var x = GetParentTreeItemChildren().Count - 1;
         if (selected_item_index == GetParentTreeItemChildren().Count - 1)
         {
             MoveSelectionToTop();
