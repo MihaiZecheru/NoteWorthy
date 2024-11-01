@@ -291,23 +291,25 @@ internal class NoteEditor
     /// </summary>
     private static Dictionary<char, char[]> diacritics = new Dictionary<char, char[]>()
     {
-        { 'A', new char[] { 'À', 'Á', 'Â', 'Ã', 'Ä', 'Å' } },
+        { 'A', new char[] { 'À', 'Á', 'Â', 'Ã', 'Ä', 'Å', 'Æ' } },
         { 'E', new char[] { 'È', 'É', 'Ê', 'Ë' } },
         { 'I', new char[] { 'Ì', 'Í', 'Î', 'Ï' } },
-        { 'O', new char[] { 'Ò', 'Ó', 'Ô', 'Õ', 'Ö' } },
+        { 'O', new char[] { 'Ò', 'Ó', 'Ô', 'Õ', 'Ö', 'Ø' } },
         { 'U', new char[] { 'Ù', 'Ú', 'Û', 'Ü' } },
         { 'Y', new char[] { 'Ý' } },
         { 'C', new char[] { 'Ç' } },
         { 'D', new char[] { 'Ð' } },
         { 'N', new char[] { 'Ñ' } },
-        { 'a', new char[] { 'à', 'á', 'â', 'ã', 'ä', 'å' } },
+        { 'a', new char[] { 'à', 'á', 'â', 'ã', 'ä', 'å', 'æ' } },
         { 'e', new char[] { 'è', 'é', 'ê', 'ë' } },
         { 'i', new char[] { 'ì', 'í', 'î', 'ï' } },
-        { 'o', new char[] { 'ò', 'ó', 'ô', 'õ', 'ö' } },
+        { 'o', new char[] { 'ò', 'ó', 'ô', 'õ', 'ö', 'ø' } },
         { 'u', new char[] { 'ù', 'ú', 'û', 'ü' } },
         { 'y', new char[] { 'ý' } },
         { 'c', new char[] { 'ç' } },
-        { 'n', new char[] { 'ñ' } }
+        { 'n', new char[] { 'ñ' } },
+        { 'd', new char[] { 'ð' } },
+        { 's', new char[] { 'ß' } },
     };
 
     private char RemoveDiacritics(char c)
@@ -640,7 +642,7 @@ internal class NoteEditor
     /// <summary>
     /// Returns true if the cursor is somewhere in the last line
     /// </summary>
-    private bool OnLastLine()
+    public bool OnLastLine()
     {
         return line_num == lines.Count - 1;
     }
@@ -690,18 +692,21 @@ internal class NoteEditor
 
         // Get bytes
         List<byte> bytes = new();
-        foreach (List<ColorChar> line in this.lines)
+        for (int i = 0; i < this.lines.Count; i++)
         {
-            foreach (ColorChar c in line)
+            foreach (ColorChar c in this.lines[i])
             {
                 (byte _char, byte _color) = c.GetBytes();
                 bytes.Add(_char);
                 bytes.Add(_color);
             }
 
-            // Colorless new-line
-            bytes.Add((byte)'\n');
-            bytes.Add(0);
+            if (i != lines.Count - 1)
+            {
+                // Colorless new-line
+                bytes.Add((byte)'\n');
+                bytes.Add(0);
+            }
         }
 
         File.WriteAllBytes(
