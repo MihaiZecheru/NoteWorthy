@@ -458,30 +458,52 @@ class Program
                     Process.Start("notepad.exe", "settings.json");
                     break;
 
-                // Ctrl+DownArrow - navigate to the next note (downwards)
+                // Ctrl+DownArrow - Navigate to the next note (downwards)
                 case ConsoleKey.DownArrow:
                 case ConsoleKey.PageDown:
                     // success == true if the next tree item was able to be selected
                     bool success = noteTree.SelectNextFileTreeItem();
-                    if (success)
+                    if (!success) break;
+                    if (noteEditor.HasUnsavedChanges())
                     {
-                        noteEditor = new NoteEditor(noteTree.GetSelectedTreeItem()!.FilePath);
-                        noteEditorRequiresUpdate = true;
-                        noteTree.Set_RequiresUpdate();
+                        Program.AskToSaveUnsavedChanges("Navigating to next file, but first...");
                     }
+
+                    noteEditor = new NoteEditor(noteTree.GetSelectedTreeItem()!.FilePath);
+                    noteEditorRequiresUpdate = true;
+                    noteTree.Set_RequiresUpdate();
                     break;
 
-                // Ctrl+UpArrow - navigate to previous note (upwards)
+                // Ctrl+UpArrow - Navigate to previous note (upwards)
                 case ConsoleKey.UpArrow:
                 case ConsoleKey.PageUp:
                     // success == true if the selected tree item was changed to the next tree item
                     bool _success = noteTree.SelectPreviousFileTreeItem();
-                    if (_success)
+                    if (!_success) break;
+
+                    if (noteEditor.HasUnsavedChanges())
                     {
-                        noteEditor = new NoteEditor(noteTree.GetSelectedTreeItem()!.FilePath);
-                        noteEditorRequiresUpdate = true;
-                        noteTree.Set_RequiresUpdate();
+                        Program.AskToSaveUnsavedChanges("Navigating to previous file, but first...");
                     }
+
+                    noteEditor = new NoteEditor(noteTree.GetSelectedTreeItem()!.FilePath);
+                    noteEditorRequiresUpdate = true;
+                    noteTree.Set_RequiresUpdate();
+                    break;
+
+                // Ctrl+B - Toggle primary color
+                case ConsoleKey.B:
+                    noteEditor.TogglePrimaryColor();
+                    break;
+
+                // Ctrl+I - Toggle secondary color
+                case ConsoleKey.I:
+                    noteEditor.ToggleSecondaryColor();
+                    break;
+
+                // Ctrl+U - Toggle tertiary color
+                case ConsoleKey.U:
+                    noteEditor.ToggleTertiaryColor();
                     break;
             }
         }
@@ -634,7 +656,7 @@ class Program
     /// <returns>True if the user wants to save the note, false if they don't</returns></returns>
     /// <param name="msg">Message to display at the beginning of the string.
     /// Ex: "Reload Note", to let them know what's gonna happen after they deal with the message</param>
-    private static bool AskToSaveUnsavedChanges(string msg)
+    public static bool AskToSaveUnsavedChanges(string msg)
     {
         AnsiConsole.Cursor.Hide();
         Console.Clear();

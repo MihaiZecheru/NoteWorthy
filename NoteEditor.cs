@@ -1,6 +1,4 @@
 ﻿using Spectre.Console;
-using System.Linq;
-using System.Text;
 
 namespace NoteWorthy;
 internal class NoteEditor
@@ -253,7 +251,7 @@ internal class NoteEditor
         if (primary_color_on || secondary_color_on || tertiary_color_on)
         {
             string? color = Settings.GetSetting(
-                primary_color_on ? "primary_color" : secondary_color_on ? "secondary_color" : "teriary_color"
+                primary_color_on ? "primary_color" : secondary_color_on ? "secondary_color" : "tertiary_color"
             );
             _char = new ColorChar((byte)c, color);
         }
@@ -870,5 +868,26 @@ internal class NoteEditor
         {
             return new Markup(s);
         }
+    }
+
+    public void TogglePrimaryColor()
+    {
+        primary_color_on = !primary_color_on;
+        secondary_color_on = false;
+        tertiary_color_on = false;
+    }
+
+    public void ToggleSecondaryColor()
+    {
+        primary_color_on = false;
+        secondary_color_on = !secondary_color_on;
+        tertiary_color_on = false;
+    }
+
+    public void ToggleTertiaryColor()
+    {
+        primary_color_on = false;
+        secondary_color_on = false;
+        tertiary_color_on = !tertiary_color_on;
     }
 }
