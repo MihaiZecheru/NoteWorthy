@@ -28,16 +28,16 @@ internal class ColorChar
     /// The color is in byte format, so it is converted to a Spectre.Console.Color via the <see cref="ByteToColor(byte)"/> method.
     /// </summary>
     /// <param name="c">Byte representing the character</param>
-    /// <param name="color">Byte representing the character's color. null for the default color (white 15 #ffffff)</param>
-    public ColorChar(byte c, byte color)
+    /// <param name="color_b">Byte representing the character's color. null for the default color (white 15 #ffffff)</param>
+    public ColorChar(byte c, byte color_b)
     {
         // Char
         if (c < 0 || c > 127) throw new ArgumentException("Invalid character value. Must be between 0 & 127 inclusive.");
         Char = (char)c;
 
         // Color
-        Color = color;
-        Color = ColorChar.ByteToColor(color);
+        color_byte = color_b;
+        Color = ColorChar.ByteToColor(color_b);
     }
 
     public static bool operator == (ColorChar left, char right)
