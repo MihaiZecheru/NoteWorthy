@@ -33,11 +33,26 @@ class Program
 
     public static void Main()
     {
+        Allow_CtrlC_AsInput();
         Allow_CtrlS_Shortcut();
         SetBlockCursor();
         InitializeNotesDirectory();
         StartResizeEventListener();
         Mainloop();
+    }
+
+    private static void Allow_CtrlC_AsInput()
+    {
+        Console.CancelKeyPress += (sender, e) =>
+        {
+            e.Cancel = true;
+
+            // If the note tree is focused, ctrl+c will copy the selected file            
+            if (!editorFocused)
+            {
+                noteTree.CopySelectedFile();
+            }
+        };
     }
 
     private static void SetBlockCursor()
@@ -168,7 +183,12 @@ class Program
         {
             switch (keyInfo.Key)
             {
-                // Ctrl+L - toggle focus to the editor
+                // Ctrl+Q - Quit \ close application
+                case ConsoleKey.Q:
+                    Environment.Exit(0);
+                    break;
+
+                // Ctrl+L - Toggle focus to the editor
                 case ConsoleKey.L:
                     if (noteEditor.GetNotePath() == null) break;
                     if (noteEditor.IsTypingDisabled()) break;
@@ -178,7 +198,7 @@ class Program
                     noteTree.Set_RequiresUpdate();
                     break;
 
-                // Ctrl+O - open the currently selected dir in the file explorer
+                // Ctrl+O - Open the currently selected dir in the file explorer
                 case ConsoleKey.O:
                     string path = noteTree.GetSelectedTreeItem()?.Parent == null ? NOTES_DIR_PATH : noteTree.GetSelectedTreeItem()!.Parent!.FilePath;
                     Process.Start("explorer.exe", path);
@@ -369,7 +389,17 @@ class Program
         {
             switch (keyInfo.Key)
             {
-                // Ctrl+L - toggle focus to the tree
+                // Ctrl+Q - Quit \ close application
+                case ConsoleKey.Q:
+                    if (noteEditor.GetNotePath() != null && noteEditor.HasUnsavedChanges())
+                    {
+                        bool save_changes = AskToSaveUnsavedChanges("Closing NoteWorthy... but first:");
+                        if (save_changes) noteEditor.Save();
+                    }
+                    Environment.Exit(0);
+                    break;
+
+                // Ctrl+L - Toggle focus to the tree
                 case ConsoleKey.L:
                     editorFocused = false;
                     AnsiConsole.Cursor.Hide();
@@ -377,13 +407,13 @@ class Program
                     noteTree.Set_RequiresUpdate();
                     break;
 
-                // Ctrl+S - save note
+                // Ctrl+S - Save note
                 case ConsoleKey.S:
                     noteEditor.Save();
                     Set_NoteEditorRequiresUpdate();
                     break;
 
-                // Ctrl+R - reload note
+                // Ctrl+R - Reload note
                 case ConsoleKey.R:
                     // Ask if they want a reload while there are unsaved changes
                     if (noteEditor.HasUnsavedChanges())
@@ -410,7 +440,7 @@ class Program
                     Set_NoteEditorRequiresUpdate();
                     break;
 
-                // Ctrl+D - delete line
+                // Ctrl+D - Delete line
                 case ConsoleKey.D:
                     noteEditor.DeleteLine();
                     Set_NoteEditorRequiresUpdate();
