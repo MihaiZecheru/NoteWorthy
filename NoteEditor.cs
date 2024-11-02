@@ -310,7 +310,7 @@ internal class NoteEditor
             {
                 if (HasUnsavedChanges())
                 {
-                    Program.AskToSaveUnsavedChanges("The app is going to quit because the color setting is invalid. " +
+                    Program.AskToSaveUnsavedChanges("[red]The app is going to quit because the color setting is invalid. [/]" +
                         "Please fix the settings file. But first...");
                 }
                 else
@@ -751,6 +751,22 @@ internal class NoteEditor
     }
 
     /// <summary>
+    /// Get the amount of characters in the whole note
+    /// </summary>
+    /// <returns></returns>
+    public int GetNoteCharCount()
+    {
+        int count = 0;
+        
+        for (int i = 0; i < this.lines.Count; i++)
+        {
+            count += this.lines[i].Count;
+        }
+
+        return count;
+    }
+
+    /// <summary>
     /// Save the note to the file
     /// </summary>
     public void Save()
@@ -1052,5 +1068,10 @@ internal class NoteEditor
     public bool IsTypingDisabled()
     {
         return typingDisabled;
+    }
+
+    public (int, int) GetCursorPosition()
+    {
+        return (line_num, pos_in_line);
     }
 }

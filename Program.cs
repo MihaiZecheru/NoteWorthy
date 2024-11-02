@@ -53,7 +53,7 @@ class Program
 
     public static void Main()
     {
-        Allow_CtrlC_AsInput();
+        Make_CtrlC_CopySelectedTreeItem();
         Allow_CtrlS_Shortcut();
         SetBlockCursor();
         InitializeNotesDirectory();
@@ -63,7 +63,7 @@ class Program
 
     [DllImport("user32.dll")]
     static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
-    private static void Allow_CtrlC_AsInput()
+    private static void Make_CtrlC_CopySelectedTreeItem()
     {
         Console.CancelKeyPress += (sender, e) =>
         {
@@ -72,8 +72,9 @@ class Program
             // If the note tree is focused, ctrl+c will copy the selected file            
             if (!editorFocused)
             {
-                bool success = noteTree.CopySelectedFile();
+                bool success = noteTree.CopySelectedTreeItem();
                 if (!success) return;
+
                 // Send Ctrl+R to refresh the tree in the main thread
                 keybd_event(0x11, 0, 0x0000, UIntPtr.Zero);
                 keybd_event(0x52, 0, 0x0000, UIntPtr.Zero);
@@ -236,8 +237,9 @@ class Program
                     if (noteEditor.IsTypingDisabled()) break;
                     editorFocused = true;
                     AnsiConsole.Cursor.Show();
-                    Set_NoteEditorRequiresUpdate();
                     noteTree.Set_RequiresUpdate();
+                    Set_NoteEditorRequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
                     break;
 
                 // Ctrl+O - Open the currently selected dir in the file explorer
@@ -246,16 +248,16 @@ class Program
                     Process.Start("explorer.exe", path);
                     break;
 
-                // Ctrl + Up Arrow - Move up one, just like normal Up Arrow
+                // Ctrl+Up Arrow - Move up one and open the file. Same as Ctrl+UpArrow in the editor
                 case ConsoleKey.UpArrow:
                 case ConsoleKey.PageUp:
-                    noteTree.MoveSelectionUp();
+                    HandleCtrlUpArrow();
                     break;
 
-                // Ctrl + Down Arrow - Move down one, just like normal Down Arrow
+                // Ctrl+Down Arrow - Move down one and open the file. Same as Ctrl+DownArrow in the editor
                 case ConsoleKey.DownArrow:
                 case ConsoleKey.PageDown:
-                    noteTree.MoveSelectionDown();
+                    HandleCtrlDownArrow();
                     break;
 
                 // Ctrl+W - Close the note in the editor if there's a note, otherwise close the app
@@ -273,6 +275,7 @@ class Program
                         // Move focus to the tree
                         editorFocused = false;
                         noteTree.Set_RequiresUpdate();
+                        SetTreeFooterRequiresUpdate();
                     }
                     break;
 
@@ -292,6 +295,7 @@ class Program
                     noteEditor = new NoteEditor(null);
                     noteTree.SetVisible();
                     Set_NoteEditorRequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
                     break;
 
                 // Ctrl+D - Delete the selected tree item
@@ -312,6 +316,7 @@ class Program
                 case ConsoleKey.D1:
                     if (noteEditor.GetNotePath() == null) break;
                     noteTree.ToggleVisibility();
+                    SetTreeFooterRequiresUpdate();
                     break;
             }
         }
@@ -357,13 +362,13 @@ class Program
 
                     if (selected_tree_item.IsDir)
                     {
-                        noteTree.NavigateToTreeItem(selected_tree_item);
+                        noteTree.NavigateToTreeItemDirectory(selected_tree_item);
                     }
                     else
                     {
                         if (noteEditor.HasUnsavedChanges())
                         {
-                            bool save_changes = AskToSaveUnsavedChanges("Opening note... but first:");
+                            bool save_changes = AskToSaveUnsavedChanges("[yellow]Opening note[/]... but first:");
                             if (save_changes) noteEditor.Save();
                         }
 
@@ -391,6 +396,7 @@ class Program
                             AnsiConsole.Cursor.Hide();
                         }
 
+                        SetTreeFooterRequiresUpdate();
                         Set_NoteEditorRequiresUpdate();
                         noteTree.Set_RequiresUpdate();
                     }
@@ -435,7 +441,7 @@ class Program
                 case ConsoleKey.Q:
                     if (noteEditor.GetNotePath() != null && noteEditor.HasUnsavedChanges())
                     {
-                        bool save_changes = AskToSaveUnsavedChanges("Closing NoteWorthy... but first:");
+                        bool save_changes = AskToSaveUnsavedChanges("[yellow]Closing NoteWorthy... [/]but first:");
                         if (save_changes) noteEditor.Save();
                     }
                     Environment.Exit(0);
@@ -447,6 +453,7 @@ class Program
                     AnsiConsole.Cursor.Hide();
                     Set_NoteEditorRequiresUpdate();
                     noteTree.Set_RequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
                     break;
 
                 // Ctrl+S - Save note
@@ -460,7 +467,7 @@ class Program
                     // Ask if they want a reload while there are unsaved changes
                     if (noteEditor.HasUnsavedChanges())
                     {
-                        bool save_changes = AskToSaveUnsavedChanges("Reloading note... but first:");
+                        bool save_changes = AskToSaveUnsavedChanges("[yellow]Reloading note...[/] but first:");
                         if (save_changes) noteEditor.Save();
                     }
 
@@ -480,19 +487,21 @@ class Program
                     }
 
                     Set_NoteEditorRequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
                     break;
 
                 // Ctrl+D - Delete line
                 case ConsoleKey.D:
                     noteEditor.DeleteLine();
                     Set_NoteEditorRequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
                     break;
 
                 // Ctrl+W - Close currently displayed note
                 case ConsoleKey.W:
                     if (noteEditor.HasUnsavedChanges())
                     {
-                        bool save_changes = AskToSaveUnsavedChanges("Closing note... but first:");
+                        bool save_changes = AskToSaveUnsavedChanges("[yellow]Closing note... [/]but first:");
                         if (save_changes) noteEditor.Save();
                     }
 
@@ -502,70 +511,81 @@ class Program
                     editorFocused = false;
                     noteTree.Set_RequiresUpdate();
                     noteTree.SetVisible();
+                    SetTreeFooterRequiresUpdate();
                     break;
 
                 // Ctrl+Z - Undo
                 case ConsoleKey.Z:
                     noteEditor.Undo();
                     Set_NoteEditorRequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
                     break;
 
                 // Ctrl+Y - Redo
                 case ConsoleKey.Y:
                     noteEditor.Redo();
                     Set_NoteEditorRequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
                     break;
 
                 // Ctrl+End - Navigate to end of file
                 case ConsoleKey.End:
                     noteEditor.MoveCursorToEndOfEditor();
                     Set_NoteEditorRequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
                     break;
 
                 // Ctrl+Home | Navigate to start of file
                 case ConsoleKey.Home:
                     noteEditor.MoveCursorToStartOfEditor();
                     Set_NoteEditorRequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
                     break;
 
                 // Ctrl+RightArrow - Navigate one word to the right
                 case ConsoleKey.RightArrow:
                     noteEditor.NavigateToNextWord();
                     Set_NoteEditorRequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
                     break;
 
                 // Ctrl+LeftArrow - Navigate one word to the left
                 case ConsoleKey.LeftArrow:
                     noteEditor.NavigateToPreviousWord();
                     Set_NoteEditorRequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
                     break;
 
                 // Ctrl+K - Toggle insert mode
                 case ConsoleKey.K:
                     noteEditor.ToggleInsertMode();
-                    treeFooterRequiresUpdate = true;
+                    SetTreeFooterRequiresUpdate();
                     break;
 
                 // Ctrl+Backspace - Delete word with backspace
                 case ConsoleKey.Backspace:
                     noteEditor.DeleteWordWithBackspace();
                     Set_NoteEditorRequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
                     break;
 
                 // Ctrl+Delete - delete word with delete key
                 case ConsoleKey.Delete:
                     noteEditor.DeleteWordWithDeleteKey();
                     Set_NoteEditorRequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
                     break;
 
                 // Ctrl+N - Create new file
                 case ConsoleKey.N:
                     HandleCreateNewFile();
+                    SetTreeFooterRequiresUpdate();
                     break;
 
                 // Ctrl+M - Create new folder
                 case ConsoleKey.M:
                     HandleCreateNewFolder();
+                    SetTreeFooterRequiresUpdate();
                     break;
 
                 // Ctrl+O - Open the currently selected dir in the file explorer
@@ -582,72 +602,38 @@ class Program
                 // Ctrl+DownArrow - Navigate to the next note (downwards)
                 case ConsoleKey.DownArrow:
                 case ConsoleKey.PageDown:
-                    // success == true if the next tree item was able to be selected
-                    bool success = noteTree.SelectNextFileTreeItem();
-                    if (!success) break;
-                    if (noteEditor.HasUnsavedChanges())
-                    {
-                        Program.AskToSaveUnsavedChanges("Navigating to next file, but first...");
-                    }
-
-                    noteEditor = new NoteEditor(noteTree.GetSelectedTreeItem()!.FilePath);
-
-                    // editor is focused by default
-                    if (noteEditor.IsTypingDisabled())
-                    {
-                        editorFocused = false;
-                    }
-
-                    Set_NoteEditorRequiresUpdate();
-                    noteTree.Set_RequiresUpdate();
+                    HandleCtrlDownArrow();
                     break;
 
                 // Ctrl+UpArrow - Navigate to previous note (upwards)
                 case ConsoleKey.UpArrow:
                 case ConsoleKey.PageUp:
-                    // success == true if the selected tree item was changed to the next tree item
-                    bool _success = noteTree.SelectPreviousFileTreeItem();
-                    if (!_success) break;
-
-                    if (noteEditor.HasUnsavedChanges())
-                    {
-                        Program.AskToSaveUnsavedChanges("Navigating to previous file, but first...");
-                    }
-
-                    noteEditor = new NoteEditor(noteTree.GetSelectedTreeItem()!.FilePath);
-
-                    // editor is focused by default
-                    if (noteEditor.IsTypingDisabled())
-                    {
-                        editorFocused = false;
-                    }
-
-                    Set_NoteEditorRequiresUpdate();
-                    noteTree.Set_RequiresUpdate();
+                    HandleCtrlUpArrow();
                     break;
 
                 // Ctrl+B - Toggle primary color
                 case ConsoleKey.B:
                     noteEditor.TogglePrimaryColor();
-                    treeFooterRequiresUpdate = true;
+                    SetTreeFooterRequiresUpdate();
                     break;
 
-                // Ctrl+I - Toggle secondary color
-                case ConsoleKey.I:
-                    noteEditor.ToggleSecondaryColor();
-                    treeFooterRequiresUpdate = true;
-                    break;
-
-                // Ctrl+U - Toggle tertiary color
+                // Ctrl+U - Toggle secondary color
                 case ConsoleKey.U:
+                    noteEditor.ToggleSecondaryColor();
+                    SetTreeFooterRequiresUpdate();
+                    break;
+
+                // Ctrl+I - Toggle tertiary color
+                case ConsoleKey.I:
                     noteEditor.ToggleTertiaryColor();
-                    treeFooterRequiresUpdate = true;
+                    SetTreeFooterRequiresUpdate();
                     break;
 
                 // Ctrl+1 - Toggle the noteTree widget
                 case ConsoleKey.D1:
                     if (noteEditor.GetNotePath() == null) break;
                     noteTree.ToggleVisibility();
+                    SetTreeFooterRequiresUpdate();
                     break;
             }
         }
@@ -662,12 +648,14 @@ class Program
                     AnsiConsole.Cursor.Hide();
                     Set_NoteEditorRequiresUpdate();
                     noteTree.Set_RequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
                     break;
 
                 // Enter - add new line at current position
                 case ConsoleKey.Enter:
                     noteEditor.InsertLine();
                     Set_NoteEditorRequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
                     break;
 
                 // UpArrow - Navigate the cursor up in the editor
@@ -679,6 +667,7 @@ class Program
                         noteEditor.MoveCursorUp();
 
                     Set_NoteEditorRequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
                     break;
 
                 // DownArrow - Navigate the cursor down in the editor
@@ -690,30 +679,35 @@ class Program
                         noteEditor.MoveCursorDown();
                     
                     Set_NoteEditorRequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
                     break;
 
-                // Navigate the cursor left in the editor
+                // LeftArrow - Navigate the cursor left in the editor
                 case ConsoleKey.LeftArrow:
                     noteEditor.MoveCursorLeft();
                     Set_NoteEditorRequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
                     break;
 
-                // Navigate the cursor right in the editor
+                // RightArrow - Navigate the cursor right in the editor
                 case ConsoleKey.RightArrow:
                     noteEditor.MoveCursorRight();
                     Set_NoteEditorRequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
                     break;
 
-                // Navigate to end of line
+                // End - Navigate to end of line
                 case ConsoleKey.End:
                     noteEditor.MoveCursorToEndOfLine();
                     Set_NoteEditorRequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
                     break;
 
-                // Navigate to start of line
+                // Home - Navigate to start of line
                 case ConsoleKey.Home:
                     noteEditor.MoveCursorToStartOfLine();
                     Set_NoteEditorRequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
                     break;
 
                 // Insert - toggle insert mode
@@ -725,12 +719,14 @@ class Program
                 case ConsoleKey.Backspace:
                     noteEditor.DeleteCharWithBackspace();
                     Set_NoteEditorRequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
                     break;
 
                 // Delete - Delete char at cursor position with delete key
                 case ConsoleKey.Delete:
                     noteEditor.DeleteCharWithDeleteKey();
                     Set_NoteEditorRequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
                     break;
 
                 // F2 - rename the current note
@@ -750,6 +746,7 @@ class Program
                         noteEditor.InsertChar(keyInfo.KeyChar);
                         Set_NoteEditorRequiresUpdate();
                     }
+                    SetTreeFooterRequiresUpdate();
                     break;
             }
         }
@@ -960,13 +957,91 @@ class Program
             Spectre.Console.Color.FromInt32(byte.Parse(Settings.GetSetting("secondary_color")!)).ToMarkup();
 
         string str = "";
+
+        // Write mode & colors
         str += insertModeEnabled ? $"[{mode_color}]Insert Mode[/]            " : $"[{mode_color}]Overwrite Mode[/]         ";
         str += primaryColorEnabled ? $"[{Spectre.Console.Color.FromInt32(byte.Parse(Settings.GetSetting("primary_color")!)).ToMarkup()}]B[/] " : "[white]B[/] ";
-        str += secondaryColorEnabled ? $"[{Spectre.Console.Color.FromInt32(byte.Parse(Settings.GetSetting("secondary_color")!)).ToMarkup()}]I[/] " : "[white]I[/] ";
-        str += tertiaryColorEnabled ? $"[{Spectre.Console.Color.FromInt32(byte.Parse(Settings.GetSetting("tertiary_color")!)).ToMarkup()}]U[/]" : "[white]U[/]";
+        str += secondaryColorEnabled ? $"[{Spectre.Console.Color.FromInt32(byte.Parse(Settings.GetSetting("secondary_color")!)).ToMarkup()}]U[/] " : "[white]U[/] ";
+        str += tertiaryColorEnabled ? $"[{Spectre.Console.Color.FromInt32(byte.Parse(Settings.GetSetting("tertiary_color")!)).ToMarkup()}]I[/]" : "[white]I[/]";
+        str += "\n";
 
-        return new Panel(str)
-            .Expand()
-            .RoundedBorder();
+        // Cursor position and line/char count
+
+        // Show placeholder values T(x, x) P(x, x)
+        if (noteEditor.GetNotePath() == null)
+        {
+            // Placeholder values. 14 spaces are used to make the P(x, x) stick to the right border
+            str += $"T(x, x){new string(' ', 14)}P(x, x)";
+        }
+        // Show the T(l, c) total and the P(l, c) position
+        else if (editorFocused)
+        {
+            // Get position
+            (int line, int col) = noteEditor.GetCursorPosition();
+            line++; col++;
+            
+            // Get total line and char count
+            int lineCount = noteEditor.GetLineCount();
+            int charCount = noteEditor.GetNoteCharCount();
+
+            // Space count: 14 spaces would make P(x, x) stick to the right border. +4 - digit - digit - digit - digit will adjust the
+            // spaces so that the P(x, x) sticks to the right border when x has more digits. the +4 accounts for each num being at least one digit
+            int space_count = 14 + 4 - GetDigitCount(line) - GetDigitCount(col) - GetDigitCount(lineCount) - GetDigitCount(charCount);
+            str += $"T({lineCount}, {charCount}){new string(' ', space_count)}P({line}, {col})";
+        }
+        else // if editor not focused, but there is a note, that means the editor is in preview mode. show only the total lines and total char count
+        {
+            int lineCount = noteEditor.GetLineCount();
+            int charCount = noteEditor.GetNoteCharCount();
+            int space_count = 14 + 2 - GetDigitCount(lineCount) - GetDigitCount(charCount);
+            str += $"T({lineCount}, {charCount}){new string(' ', space_count)}P(x, x)";
+        }
+
+        return new Panel(str).Expand().RoundedBorder();
+    }
+
+    public static void SetTreeFooterRequiresUpdate()
+    {
+        treeFooterRequiresUpdate = true;
+    }
+
+    private static int GetDigitCount(int number)
+    {
+        return number == 0 ? 1 : (int)Math.Floor(Math.Log10(number) + 1);
+    }
+
+    private static void HandleCtrlUpArrow()
+    {
+        // success == true if the selected tree item was changed to the next tree item
+        bool _success = noteTree.SelectPreviousFileTreeItem();
+        if (!_success) return;
+
+        if (noteEditor.HasUnsavedChanges())
+        {
+            Program.AskToSaveUnsavedChanges("Navigating to previous file, but first...");
+        }
+
+        noteEditor = new NoteEditor(noteTree.GetSelectedTreeItem()!.FilePath);
+        editorFocused = false;
+        Set_NoteEditorRequiresUpdate();
+        noteTree.Set_RequiresUpdate();
+        SetTreeFooterRequiresUpdate();
+    }
+
+    private static void HandleCtrlDownArrow()
+    {
+        // success == true if the next tree item was able to be selected
+        bool success = noteTree.SelectNextFileTreeItem();
+        if (!success) return;
+        if (noteEditor.HasUnsavedChanges())
+        {
+            Program.AskToSaveUnsavedChanges("Navigating to next file, but first...");
+        }
+
+        noteEditor = new NoteEditor(noteTree.GetSelectedTreeItem()!.FilePath);
+        editorFocused = false;
+        Set_NoteEditorRequiresUpdate();
+        noteTree.Set_RequiresUpdate();
+        SetTreeFooterRequiresUpdate();
     }
 }
