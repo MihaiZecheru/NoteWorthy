@@ -3,7 +3,15 @@
 namespace NoteWorthy;
 internal class NoteEditor
 {
-    public static readonly int BUFFER_HEIGHT = Console.BufferHeight - 2; // -2 for panel border on top and bottom
+    /// <summary>
+    /// Buffer height of the editor. This is the width of the editor minus the panel top/bottom borders
+    /// </summary>
+    private int BUFFER_HEIGHT = _CalculateBufferHeight();
+    
+    /// <summary>
+    /// Buffer width of the editor. This is the width of the editor minus the width of the note tree and the padding / borders.
+    /// </summary>
+    private int BUFFER_WIDTH = _CalculateBufferWidth();
 
     /// <summary>
     /// The lines that make up the note
@@ -47,11 +55,6 @@ internal class NoteEditor
     /// The position of the cursor in the current line
     /// </summary>
     private int pos_in_line = 0;
-
-    /// <summary>
-    /// Buffer width of the editor. This is the width of the editor minus the width of the note tree and the padding / borders.
-    /// </summary>
-    private int BUFFER_WIDTH = Console.BufferWidth - NoteTree.DISPLAY_WIDTH - 4;
 
     /// <summary>
     /// True if there are unsaved changes
@@ -162,7 +165,14 @@ internal class NoteEditor
             throw new ArgumentOutOfRangeException("Cursor left position is out of bounds");
         }
 
-        Console.SetCursorPosition(left + NoteTree.DISPLAY_WIDTH + 2, top + 1);
+        if (Program.NoteTreeVisible())
+        {
+            Console.SetCursorPosition(left + NoteTree.DISPLAY_WIDTH + 2, top + 1);
+        }
+        else
+        {
+            Console.SetCursorPosition(left + 2, top + 1);
+        }
     }
 
     public string? GetNotePath()
@@ -203,7 +213,7 @@ internal class NoteEditor
     {
         SaveState();
 
-        if (lines.Count == NoteEditor.BUFFER_HEIGHT) return;
+        if (lines.Count == BUFFER_HEIGHT) return;
 
         if (AtEndOfLine())
         {
@@ -918,5 +928,28 @@ internal class NoteEditor
         primary_color_on = false;
         secondary_color_on = false;
         tertiary_color_on = !tertiary_color_on;
+    }
+
+    /// <summary>
+    /// The width buffer for the editor is the console width buffer - the width of the note tree - 4.
+    /// -4 comes from the border of the editor panel 
+    /// (1 left & 1 right) and the padding on each side of the panel (1 left & 1 right).
+    /// </summary>
+    public static int _CalculateBufferWidth()
+    {
+        if (Program.NoteTreeVisible())
+            return Console.BufferWidth - NoteTree.DISPLAY_WIDTH - 4;
+        else
+            return Console.BufferWidth - 4;
+    }
+
+    /// <summary>
+    /// The height buffer for the editor is the console height buffer - 2.
+    /// the -2 comes from the panel top and bottom border. 1 for top and 1 for bottom
+    /// </summary>
+    /// <returns></returns>
+    public static int _CalculateBufferHeight()
+    {
+        return Console.BufferHeight - 2; // -2 for panel border on the top and bottom
     }
 }

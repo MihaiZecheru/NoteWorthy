@@ -329,4 +329,21 @@ internal class NoteTree
         requires_update = true;
         return true;
     }
+
+    private bool is_visible = true;
+    public void ToggleVisibility()
+    {
+        is_visible = !is_visible;
+        requires_update = true;
+    }
+
+    public bool IsVisible()
+    {
+        return is_visible;
+    }
+
+    public void SetVisible()
+    {
+        is_visible = true;
+    }
 }

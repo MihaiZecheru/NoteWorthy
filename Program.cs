@@ -33,7 +33,6 @@ class Program
 
     public static void Main()
     {
-        Console.WindowWidth = 60;
         Allow_CtrlS_Shortcut();
         SetBlockCursor();
         InitializeNotesDirectory();
@@ -102,6 +101,15 @@ class Program
 
             // Will only rewrite if there's been a change to them
             display_layout.GetLayout("NoteTree").Update(panel);
+
+            if (noteTree.IsVisible())
+            {
+                display_layout.GetLayout("NoteTree").Visible();
+            }
+            else
+            {
+                display_layout.GetLayout("NoteTree").Invisible();
+            }
         }
 
         if (noteEditorRequiresUpdate)
@@ -140,6 +148,7 @@ class Program
             {
                 // Ctrl+L - toggle focus to the editor
                 case ConsoleKey.L:
+                    if (noteEditor.GetNotePath() == null) break;
                     editorFocused = true;
                     AnsiConsole.Cursor.Show();
                     Set_NoteEditorRequiresUpdate();
@@ -174,6 +183,7 @@ class Program
                     else
                     {
                         noteEditor = new NoteEditor(null);
+                        noteTree.SetVisible();
                         Set_NoteEditorRequiresUpdate();
                         // Move focus to the tree
                         editorFocused = false;
@@ -195,6 +205,7 @@ class Program
                 case ConsoleKey.R:
                     noteTree = new NoteTree();
                     noteEditor = new NoteEditor(null);
+                    noteTree.SetVisible();
                     Set_NoteEditorRequiresUpdate();
                     break;
 
@@ -210,6 +221,12 @@ class Program
                         Settings.CreateDefaultSettingsFile();
                     }
                     Settings.OpenSettingsFile();
+                    break;
+
+                // Ctrl+1 - Toggle the noteTree widget
+                case ConsoleKey.D1:
+                    if (noteEditor.GetNotePath() == null) break;
+                    noteTree.ToggleVisibility();
                     break;
             }
         }
@@ -383,6 +400,7 @@ class Program
                     // Move focus to the tree
                     editorFocused = false;
                     noteTree.Set_RequiresUpdate();
+                    noteTree.SetVisible();
                     break;
 
                 // Ctrl+Z - Undo
@@ -507,8 +525,9 @@ class Program
                     noteEditor.ToggleTertiaryColor();
                     break;
 
-                // Ctrl+0 - Close the noteTree widget
-                case ConsoleKey.D0:
+                // Ctrl+1 - Toggle the noteTree widget
+                case ConsoleKey.D1:
+                    if (noteEditor.GetNotePath() == null) break;
                     noteTree.ToggleVisibility();
                     break;
             }
@@ -651,6 +670,7 @@ class Program
         // Do not try to refact this.
         noteTree = new NoteTree();
         noteEditor = new NoteEditor(null);
+        noteTree.SetVisible();
         Set_NoteEditorRequiresUpdate();
         editorFocused = false; // Focus the tree in case user wants to keep renaming stuff
         AnsiConsole.Cursor.Hide();
@@ -767,6 +787,7 @@ class Program
         // Reload the tree
         noteTree = new NoteTree();
         noteEditor = new NoteEditor(null);
+        noteTree.SetVisible();
 
         Console.ReadKey(true);
         noteTree.Set_RequiresUpdate();
@@ -777,5 +798,10 @@ class Program
     private static void Set_NoteEditorRequiresUpdate()
     {
         noteEditorRequiresUpdate = true;
+    }
+
+    public static bool NoteTreeVisible()
+    {
+        return noteTree.IsVisible();
     }
 }
