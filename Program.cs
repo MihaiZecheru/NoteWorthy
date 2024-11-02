@@ -41,6 +41,8 @@ class Program
         Mainloop();
     }
 
+    [DllImport("user32.dll")]
+    static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
     private static void Allow_CtrlC_AsInput()
     {
         Console.CancelKeyPress += (sender, e) =>
@@ -50,7 +52,13 @@ class Program
             // If the note tree is focused, ctrl+c will copy the selected file            
             if (!editorFocused)
             {
-                noteTree.CopySelectedFile();
+                bool success = noteTree.CopySelectedFile();
+                if (!success) return;
+                // Send Ctrl+R to refresh the tree in the main thread
+                keybd_event(0x11, 0, 0x0000, UIntPtr.Zero);
+                keybd_event(0x52, 0, 0x0000, UIntPtr.Zero);
+                keybd_event(0x52, 0, 0x0002, UIntPtr.Zero);
+                keybd_event(0x11, 0, 0x0002, UIntPtr.Zero);
             }
         };
     }

@@ -4,7 +4,16 @@ namespace NoteWorthy;
 
 internal class NoteTree
 {
+    /// <summary>
+    /// The width of the entire panel
+    /// </summary>
     public static readonly int DISPLAY_WIDTH = 32;
+
+    /// <summary>
+    /// The width of the text buffer that will be displayed inside the panel.
+    /// </summary>
+    public static readonly int BUFFER_WIDTH = DISPLAY_WIDTH - 4;
+
     private readonly List<TreeItem> treeItems;
     /// <summary>
     /// The parent of the currently selected TreeItem.
@@ -39,18 +48,18 @@ internal class NoteTree
         IEnumerable<TreeItem> _files = files.Select((string file) =>
         {
             int len = Path.GetFileName(file)!.Length;
-            if (len > NoteTree.DISPLAY_WIDTH - 4)
+            if (len > BUFFER_WIDTH)
             {
-                throw new FileLoadException($"File name is too long. Must be less than {NoteTree.DISPLAY_WIDTH - 4} characters long. Is {len} long. Path: {file}");
+                throw new FileLoadException($"File name is too long. Must be less than {BUFFER_WIDTH} characters long. Is {len} long. Path: {file}");
             }
             return new TreeItem(file, parent);
         });
         IEnumerable<TreeItem> _directories = directories.Select(directory =>
         {
             int len = Path.GetDirectoryName(directory)!.Length;
-            if (len > NoteTree.DISPLAY_WIDTH - 4)
+            if (len > BUFFER_WIDTH)
             {
-                throw new FileLoadException($"Directory name is too long. Must be less than {NoteTree.DISPLAY_WIDTH - 4} characters long. Is {len} long. Path: {directory}");
+                throw new FileLoadException($"Directory name is too long. Must be less than {BUFFER_WIDTH} characters long. Is {len} long. Path: {directory}");
             }
 
             var treeItem = new TreeItem(directory, parent);
@@ -357,5 +366,41 @@ internal class NoteTree
     public void SetVisible()
     {
         is_visible = true;
+    }
+
+    /// <summary>
+    /// Make a copy of the selected tree item if it is a file. 
+    /// The copy will not be made if a file with the resulting name (name - copy.nw) already exists.
+    /// </summary>
+    /// <returns>True if a copy was made, false otherwise</returns>
+    public bool CopySelectedFile()
+    {
+        TreeItem? t = GetSelectedTreeItem();
+        if (t == null || t.IsDir) return false;
+
+        string file_name = Path.GetFileName(t.FilePath);
+        string file_name_no_ext = Path.GetFileNameWithoutExtension(t.FilePath);
+
+        string new_name;
+        if (file_name.Length <= BUFFER_WIDTH - " - Copy".Length)
+        {
+            new_name = file_name_no_ext + " - Copy.nw";
+        }
+        else
+        {
+            new_name = file_name.Substring(0, BUFFER_WIDTH - " ... - Copy.nw".Length) + " ... - Copy.nw";
+        }
+
+        string new_path = Path.Combine(Path.GetDirectoryName(t.FilePath)!, new_name);
+
+        if (File.Exists(new_path))
+        {
+            Console.Beep();
+            return false;
+        }
+
+        File.Copy(t.FilePath, new_path);
+        TreeItem new_tree_item = new TreeItem(new_path, current_parent_treeItem);
+        return true;
     }
 }
