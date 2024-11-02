@@ -33,6 +33,7 @@ class Program
 
     public static void Main()
     {
+        Console.WindowWidth = 60;
         Allow_CtrlS_Shortcut();
         SetBlockCursor();
         InitializeNotesDirectory();
@@ -141,7 +142,7 @@ class Program
                 case ConsoleKey.L:
                     editorFocused = true;
                     AnsiConsole.Cursor.Show();
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     noteTree.Set_RequiresUpdate();
                     break;
 
@@ -173,7 +174,7 @@ class Program
                     else
                     {
                         noteEditor = new NoteEditor(null);
-                        noteEditorRequiresUpdate = true;
+                        Set_NoteEditorRequiresUpdate();
                         // Move focus to the tree
                         editorFocused = false;
                         noteTree.Set_RequiresUpdate();
@@ -194,7 +195,7 @@ class Program
                 case ConsoleKey.R:
                     noteTree = new NoteTree();
                     noteEditor = new NoteEditor(null);
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     break;
 
                 // Ctrl+D - Delete the selected tree item
@@ -282,18 +283,18 @@ class Program
                             AnsiConsole.Cursor.Show();
                         }
 
-                        noteEditorRequiresUpdate = true;
+                        Set_NoteEditorRequiresUpdate();
                         noteTree.Set_RequiresUpdate();
                     }
 
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     break;
 
                 // F2 - rename the selected item
                 case ConsoleKey.F2:
                     RenameSelectedTreeItem();
                     noteTree.Set_RequiresUpdate();
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     break;
 
                 // N - Create new file (Ctrl+N also does this)
@@ -326,14 +327,14 @@ class Program
                 case ConsoleKey.L:
                     editorFocused = false;
                     AnsiConsole.Cursor.Hide();
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     noteTree.Set_RequiresUpdate();
                     break;
 
                 // Ctrl+S - save note
                 case ConsoleKey.S:
                     noteEditor.Save();
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     break;
 
                 // Ctrl+R - reload note
@@ -360,13 +361,13 @@ class Program
                         break;
                     }
 
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     break;
 
                 // Ctrl+D - delete line
                 case ConsoleKey.D:
                     noteEditor.DeleteLine();
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     break;
 
                 // Ctrl+W - Close currently displayed note
@@ -378,7 +379,7 @@ class Program
                     }
 
                     noteEditor = new NoteEditor(null);
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     // Move focus to the tree
                     editorFocused = false;
                     noteTree.Set_RequiresUpdate();
@@ -387,37 +388,37 @@ class Program
                 // Ctrl+Z - Undo
                 case ConsoleKey.Z:
                     noteEditor.Undo();
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     break;
 
                 // Ctrl+Y - Redo
                 case ConsoleKey.Y:
                     noteEditor.Redo();
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     break;
 
                 // Ctrl+End - Navigate to end of file
                 case ConsoleKey.End:
                     noteEditor.MoveCursorToEndOfEditor();
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     break;
 
                 // Ctrl+Home | Navigate to start of file
                 case ConsoleKey.Home:
                     noteEditor.MoveCursorToStartOfEditor();
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     break;
 
                 // Ctrl+RightArrow - Navigate one word to the right
                 case ConsoleKey.RightArrow:
                     noteEditor.NavigateToNextWord();
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     break;
 
                 // Ctrl+LeftArrow - Navigate one word to the left
                 case ConsoleKey.LeftArrow:
                     noteEditor.NavigateToPreviousWord();
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     break;
 
                 // Ctrl+K - Toggle insert mode
@@ -428,13 +429,13 @@ class Program
                 // Ctrl+Backspace - Delete word with backspace
                 case ConsoleKey.Backspace:
                     noteEditor.DeleteWordWithBackspace();
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     break;
 
                 // Ctrl+Delete - delete word with delete key
                 case ConsoleKey.Delete:
                     noteEditor.DeleteWordWithDeleteKey();
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     break;
 
                 // Ctrl+N - Create new file
@@ -470,7 +471,7 @@ class Program
                     }
 
                     noteEditor = new NoteEditor(noteTree.GetSelectedTreeItem()!.FilePath);
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     noteTree.Set_RequiresUpdate();
                     break;
 
@@ -487,7 +488,7 @@ class Program
                     }
 
                     noteEditor = new NoteEditor(noteTree.GetSelectedTreeItem()!.FilePath);
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     noteTree.Set_RequiresUpdate();
                     break;
 
@@ -505,6 +506,11 @@ class Program
                 case ConsoleKey.U:
                     noteEditor.ToggleTertiaryColor();
                     break;
+
+                // Ctrl+0 - Close the noteTree widget
+                case ConsoleKey.D0:
+                    noteTree.ToggleVisibility();
+                    break;
             }
         }
         // For functionality with regular keypresses
@@ -516,14 +522,14 @@ class Program
                 case ConsoleKey.Escape:
                     editorFocused = false;
                     AnsiConsole.Cursor.Hide();
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     noteTree.Set_RequiresUpdate();
                     break;
 
                 // Enter - add new line at current position
                 case ConsoleKey.Enter:
                     noteEditor.InsertLine();
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     break;
 
                 // UpArrow - Navigate the cursor up in the editor
@@ -534,7 +540,7 @@ class Program
                     else
                         noteEditor.MoveCursorUp();
 
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     break;
 
                 // DownArrow - Navigate the cursor down in the editor
@@ -545,31 +551,31 @@ class Program
                     else
                         noteEditor.MoveCursorDown();
                     
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     break;
 
                 // Navigate the cursor left in the editor
                 case ConsoleKey.LeftArrow:
                     noteEditor.MoveCursorLeft();
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     break;
 
                 // Navigate the cursor right in the editor
                 case ConsoleKey.RightArrow:
                     noteEditor.MoveCursorRight();
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     break;
 
                 // Navigate to end of line
                 case ConsoleKey.End:
                     noteEditor.MoveCursorToEndOfLine();
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     break;
 
                 // Navigate to start of line
                 case ConsoleKey.Home:
                     noteEditor.MoveCursorToStartOfLine();
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     break;
 
                 // Insert - toggle insert mode
@@ -580,20 +586,20 @@ class Program
                 // Backspace - Delete char at cursor position with backspace
                 case ConsoleKey.Backspace:
                     noteEditor.DeleteCharWithBackspace();
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     break;
 
                 // Delete - Delete char at cursor position with delete key
                 case ConsoleKey.Delete:
                     noteEditor.DeleteCharWithDeleteKey();
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     break;
 
                 // F2 - rename the current note
                 case ConsoleKey.F2:
                     RenameSelectedTreeItem();
                     noteTree.Set_RequiresUpdate();
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     // focus the tree in case user wants to keep renaming stuff
                     editorFocused = false;
                     break;
@@ -604,7 +610,7 @@ class Program
                     if (!char.IsControl(keyInfo.KeyChar))
                     {
                         noteEditor.InsertChar(keyInfo.KeyChar);
-                        noteEditorRequiresUpdate = true;
+                        Set_NoteEditorRequiresUpdate();
                     }
                     break;
             }
@@ -645,7 +651,7 @@ class Program
         // Do not try to refact this.
         noteTree = new NoteTree();
         noteEditor = new NoteEditor(null);
-        noteEditorRequiresUpdate = true;
+        Set_NoteEditorRequiresUpdate();
         editorFocused = false; // Focus the tree in case user wants to keep renaming stuff
         AnsiConsole.Cursor.Hide();
     }
@@ -667,7 +673,7 @@ class Program
         while (true)
         {
             ConsoleKeyInfo keyInfo = Console.ReadKey(true);
-            noteEditorRequiresUpdate = true;
+            Set_NoteEditorRequiresUpdate();
             noteTree.Set_RequiresUpdate();
 
             if (keyInfo.Key == ConsoleKey.Y)
@@ -692,7 +698,7 @@ class Program
         AnsiConsole.Cursor.Show();
         // Ctrl+N - Create new file
         string? file_path = noteTree.CreateFile();
-        noteEditorRequiresUpdate = true;
+        Set_NoteEditorRequiresUpdate();
         noteTree.Set_RequiresUpdate();
 
         if (file_path == null) return;
@@ -712,7 +718,7 @@ class Program
         bool cursor_visible = Console.CursorVisible;
         AnsiConsole.Cursor.Show();
         string? folder_path = noteTree.CreateFolder();
-        noteEditorRequiresUpdate = true;
+        Set_NoteEditorRequiresUpdate();
         noteTree.Set_RequiresUpdate();
 
         if (folder_path == null) return;
@@ -747,7 +753,7 @@ class Program
             }
         }
 
-        noteEditorRequiresUpdate = true;
+        Set_NoteEditorRequiresUpdate();
         noteTree.Set_RequiresUpdate();
     }
 
@@ -764,7 +770,12 @@ class Program
 
         Console.ReadKey(true);
         noteTree.Set_RequiresUpdate();
-        noteEditorRequiresUpdate = true;
+        Set_NoteEditorRequiresUpdate();
         editorFocused = false;
+    }
+
+    private static void Set_NoteEditorRequiresUpdate()
+    {
+        noteEditorRequiresUpdate = true;
     }
 }
