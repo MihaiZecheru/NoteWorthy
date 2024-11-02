@@ -973,6 +973,26 @@ internal class NoteEditor
         tertiary_color_on = !tertiary_color_on;
     }
 
+    public bool IsPrimaryColorEnabled()
+    {
+        return primary_color_on;
+    }
+
+    public bool IsSecondaryColorEnabled()
+    {
+        return secondary_color_on;
+    }
+
+    public bool IsTertiaryColorEnabled()
+    {
+        return tertiary_color_on;
+    }
+
+    public bool IsInsertModeEnabled()
+    {
+        return insertModeOn;
+    }
+
     /// <summary>
     /// The width buffer for the editor is the console width buffer - the width of the note tree - 4.
     /// -4 comes from the border of the editor panel 

@@ -7,23 +7,43 @@ namespace NoteWorthy;
 class Program
 {
     public static Spectre.Console.Style DefaultStyle = new Style(Color.White, Color.Grey46);
+
+    /// <summary>
+    /// The path to the root 'notes' directory which contains all the notes
+    /// </summary>
     public static string NOTES_DIR_PATH = Path.Combine(Directory.GetCurrentDirectory(), "notes");
 
     private static NoteTree noteTree = new NoteTree();
     private static NoteEditor noteEditor = new NoteEditor(null);
+
+    /// <summary>
+    /// The layout of the display. Gets printed every time an update is required.
+    /// </summary>
     private static Layout display_layout = new Layout()
         .SplitColumns(
-            new Layout("NoteTree").Size(NoteTree.DISPLAY_WIDTH),
+            new Layout("TreeItemsAndFooter")
+                .Size(NoteTree.DISPLAY_WIDTH)
+                .SplitRows(
+                    new Layout("TreeItems").Size(NoteTree.DISPLAY_HEIGHT),
+                    new Layout("TreeFooter")
+                ),
             new Layout("NoteEditor")
         );
+
     /// <summary>
     /// Set to true when a new note is loaded (and therefore a new NoteEditor is created) in order to render the new note.
     /// </summary>
     private static bool noteEditorRequiresUpdate = true;
+    
     /// <summary>
     /// Set to true when the editor (the right side) is focused. Set to false when the tree (the left side) is focused.
     /// </summary>
     private static bool editorFocused = false;
+
+    /// <summary>
+    /// Set to true when the tree footer requires an update
+    /// </summary>
+    private static bool treeFooterRequiresUpdate = true;
 
     // For allowing ctrl+s as a shortcut
     [DllImport("kernel32.dll")]
@@ -134,6 +154,8 @@ class Program
     private static void HandleRendering()
     {
         bool note_tree_requires_update = noteTree.Get_RequiresUpdate();
+
+        // Note tree
         if (note_tree_requires_update)
         {
             var panel = noteTree.GenerateDisplayPanel();
@@ -145,18 +167,21 @@ class Program
             }
 
             // Will only rewrite if there's been a change to them
-            display_layout.GetLayout("NoteTree").Update(panel);
+            display_layout.GetLayout("TreeItems").Update(panel);
 
             if (noteTree.IsVisible())
             {
-                display_layout.GetLayout("NoteTree").Visible();
+                display_layout.GetLayout("TreeFooter").Visible();
+                display_layout.GetLayout("TreeItems").Visible();
             }
             else
             {
-                display_layout.GetLayout("NoteTree").Invisible();
+                display_layout.GetLayout("TreeFooter").Invisible();
+                display_layout.GetLayout("TreeItems").Invisible();
             }
         }
 
+        // Note editor
         if (noteEditorRequiresUpdate)
         {
             var panel = noteEditor.GenerateDisplayPanel();
@@ -169,10 +194,19 @@ class Program
             display_layout.GetLayout("NoteEditor").Update(panel);
         }
 
-        if (note_tree_requires_update || noteEditorRequiresUpdate)
+        // Tree footer
+        if (treeFooterRequiresUpdate)
+        {
+            var panel = GenerateTreeFooterPanel();
+            display_layout.GetLayout("TreeFooter").Update(panel);
+        }
+
+        // If any of the panels require an update, then update the display
+        if (note_tree_requires_update || noteEditorRequiresUpdate || treeFooterRequiresUpdate)
         {
             AnsiConsole.Cursor.Hide();
             noteEditorRequiresUpdate = false;
+            treeFooterRequiresUpdate = false;
             Console.SetCursorPosition(0, 0);
             AnsiConsole.Write(display_layout);
 
@@ -509,6 +543,7 @@ class Program
                 // Ctrl+K - Toggle insert mode
                 case ConsoleKey.K:
                     noteEditor.ToggleInsertMode();
+                    treeFooterRequiresUpdate = true;
                     break;
 
                 // Ctrl+Backspace - Delete word with backspace
@@ -594,16 +629,19 @@ class Program
                 // Ctrl+B - Toggle primary color
                 case ConsoleKey.B:
                     noteEditor.TogglePrimaryColor();
+                    treeFooterRequiresUpdate = true;
                     break;
 
                 // Ctrl+I - Toggle secondary color
                 case ConsoleKey.I:
                     noteEditor.ToggleSecondaryColor();
+                    treeFooterRequiresUpdate = true;
                     break;
 
                 // Ctrl+U - Toggle tertiary color
                 case ConsoleKey.U:
                     noteEditor.ToggleTertiaryColor();
+                    treeFooterRequiresUpdate = true;
                     break;
 
                 // Ctrl+1 - Toggle the noteTree widget
@@ -904,5 +942,31 @@ class Program
     public static void UnfocusEditor()
     {
         editorFocused = false;
+    }
+
+    private static Panel GenerateTreeFooterPanel()
+    {
+        bool insertModeEnabled = noteEditor.IsInsertModeEnabled();
+        bool primaryColorEnabled = noteEditor.IsPrimaryColorEnabled();
+        bool secondaryColorEnabled = noteEditor.IsSecondaryColorEnabled();
+        bool tertiaryColorEnabled = noteEditor.IsTertiaryColorEnabled();
+
+        // Set the color of the mode text based on the insert mode setting
+        // If the mode is "insert" and the default setting is "insert", use primary.
+        // If the mode is "overwrite" and the default setting is "overwrite", use primary.
+        // Otherwise, use secondary.
+        string mode_color = insertModeEnabled == (Settings.GetSetting("write_mode") == "insert") ?
+            Spectre.Console.Color.FromInt32(byte.Parse(Settings.GetSetting("primary_color")!)).ToMarkup() :
+            Spectre.Console.Color.FromInt32(byte.Parse(Settings.GetSetting("secondary_color")!)).ToMarkup();
+
+        string str = "";
+        str += insertModeEnabled ? $"[{mode_color}]Insert Mode[/]            " : $"[{mode_color}]Overwrite Mode[/]         ";
+        str += primaryColorEnabled ? $"[{Spectre.Console.Color.FromInt32(byte.Parse(Settings.GetSetting("primary_color")!)).ToMarkup()}]B[/] " : "[white]B[/] ";
+        str += secondaryColorEnabled ? $"[{Spectre.Console.Color.FromInt32(byte.Parse(Settings.GetSetting("secondary_color")!)).ToMarkup()}]I[/] " : "[white]I[/] ";
+        str += tertiaryColorEnabled ? $"[{Spectre.Console.Color.FromInt32(byte.Parse(Settings.GetSetting("tertiary_color")!)).ToMarkup()}]U[/]" : "[white]U[/]";
+
+        return new Panel(str)
+            .Expand()
+            .RoundedBorder();
     }
 }

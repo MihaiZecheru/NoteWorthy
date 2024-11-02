@@ -14,6 +14,18 @@ internal class NoteTree
     /// </summary>
     public static readonly int BUFFER_WIDTH = DISPLAY_WIDTH - 4;
 
+    /// <summary>
+    /// The height of the TreeItems panel.
+    /// -3 for the footer panel
+    /// </summary>
+    public static readonly int DISPLAY_HEIGHT = Console.BufferHeight - 3;
+
+    /// <summary>
+    /// The height of the buffer within the TreeItems panel
+    /// -2 for the top and bottom borders.
+    /// </summary>
+    private static readonly int BUFFER_HEIGHT = DISPLAY_HEIGHT - 2;
+
     private readonly List<TreeItem> treeItems;
     /// <summary>
     /// The parent of the currently selected TreeItem.
