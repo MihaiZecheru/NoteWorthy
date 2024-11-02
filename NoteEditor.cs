@@ -88,11 +88,11 @@ internal class NoteEditor
     private bool tertiary_color_on = false;
 
     /// <param name="note_path">File path of the note to show in the editor. Set NULL to not show any note</param>
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public NoteEditor(string? notePath)
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     {
         this.note_path = notePath;
-        this.lines = new();
-        this.lines.Add(new List<ColorChar>());
 
         if (this.note_path == null) return;
 
@@ -101,9 +101,17 @@ internal class NoteEditor
             throw new FileNotFoundException();
         }
 
-        byte[] bytes = File.ReadAllBytes(this.note_path);
+        LoadNote();
+    }
+
+    private void LoadNote()
+    {
+        this.lines = new();
+        this.lines.Add(new List<ColorChar>());
+
+        byte[] bytes = File.ReadAllBytes(this.note_path!);
         // There will always be an even number of bytes in the file because each char byte has a corresponding color byte
-        for (int i = 0; i < bytes.LongLength; i += 2)
+        for (long i = 0; i < bytes.LongLength; i += 2)
         {
             byte c = bytes[i];
             byte color = bytes[i + 1];
@@ -118,6 +126,40 @@ internal class NoteEditor
             {
                 // Append the char to the note
                 lines[lines.Count - 1].Add(new ColorChar(c, color));
+            }
+        }
+
+        FixNoteBuffersIfNecessary();
+    }
+
+    /// <summary>
+    /// Make the note fit the screen no matter what. If the note is too big, disable typing.
+    /// 
+    /// If the note is too big in height, make the last line an elipsis to show there's more lines.
+    /// Add an elipsis to the end of each overflowing line to show there's more text on that line
+    /// </summary>
+    private void FixNoteBuffersIfNecessary()
+    {
+        // Typing is enabled by default. If the note is too big, though, it will be disabled.
+        typingDisabled = false;
+
+        // " ..." a space and three dots
+        ColorChar[] elipsis = { new ColorChar((byte)' ', 0), new ColorChar((byte)'.', 0), new ColorChar((byte)'.', 0), new ColorChar((byte)'.', 0) };
+
+        // If the note is too big to fit in the editor, disable typing
+        if (lines!.Count > BUFFER_HEIGHT)
+        {
+            DisableTyping();
+            lines[BUFFER_HEIGHT - 1] = elipsis.ToList().GetRange(1, 3);
+        }
+
+        for (int i = 0; i < lines.Count; i++)
+        {
+            if (lines[i].Count > BUFFER_WIDTH)
+            {
+                if (!typingDisabled) DisableTyping();
+                lines[i] = lines[i].GetRange(0, BUFFER_WIDTH - 4);
+                lines[i].AddRange(elipsis);
             }
         }
     }
@@ -249,7 +291,7 @@ internal class NoteEditor
     {
         HandlePossibleStateSave();
 
-        if (LineIsFull()) return;
+        if (LineIsFull() && insertModeOn) return;
 
         // If the char is not ascii
         if (c < 0 || c > 127)
@@ -749,17 +791,28 @@ internal class NoteEditor
     /// </summary>
     public Panel GenerateDisplayPanel()
     {
+        // No note in the editor
         if (this.note_path == null)
         {
             return new Panel(new Text("No note open"))
                 .Expand()
                 .RoundedBorder();
         }
-
-        string unsaved_changes_indicator = unsaved_changes ? " *" : "";
-        return new Panel(GetDisplayMarkup()).Header($"[yellow] {Path.GetFileName(note_path)}{unsaved_changes_indicator} [/]")
-         .Expand()
-         .RoundedBorder();
+        // The note is too big and typing is disabled. The user cannot focus the editor and the text is truncated.
+        else if (typingDisabled)
+        {
+            return new Panel(GetDisplayMarkup()).Header($"[yellow] {Path.GetFileName(note_path)} [white]-[/] [red]enlarge console to edit note[/] [/]")
+             .Expand()
+             .RoundedBorder();
+        }
+        // Normal display
+        else
+        {
+            string unsaved_changes_indicator = unsaved_changes ? " *" : "";
+            return new Panel(GetDisplayMarkup()).Header($"[yellow] {Path.GetFileName(note_path)}{unsaved_changes_indicator} [/]")
+             .Expand()
+             .RoundedBorder();
+        }
     }
 
     public void MoveCursorUp()
@@ -871,19 +924,9 @@ internal class NoteEditor
 
     private Markup GetDisplayMarkup()
     {
-        if (lines.Count > BUFFER_HEIGHT)
-        {
-            throw new Exception("Buffer height overflow");
-        }
-
         string s = "";
         this.lines.ForEach(line =>
         {
-            if (line.Count > BUFFER_WIDTH)
-            {
-                throw new Exception("Buffer width overflow");
-            }
-
             line.ForEach((ColorChar c) =>
             {
                 if (c.Color == null)
@@ -951,5 +994,42 @@ internal class NoteEditor
     public static int _CalculateBufferHeight()
     {
         return Console.BufferHeight - 2; // -2 for panel border on the top and bottom
+    }
+
+    public void UpdateBuffers()
+    {
+        BUFFER_HEIGHT = _CalculateBufferHeight();
+        BUFFER_WIDTH = _CalculateBufferWidth();
+        // Reload the note to truncate the lines and disable typing if necessary
+        LoadNote();
+    }
+
+    /// <summary>
+    /// This will be set to true when the text is too big to fit in the editor, for having been written 
+    /// while the console was larger than it is now. Typing will be disabled until the user makes the console
+    /// bigger, and every line will be truncated to fit the editor, but the user WILL be able to view the note.
+    /// 
+    /// When typing is disabled, the editor is like in preview mode. The user can see what's there, but they won't
+    /// be able to make any changes until they make the console bigger.
+    /// 
+    /// Similar to what happens when the user opens a file with spacebar instead of enter. Enter shifts the focus to
+    /// the editor, but spacebar just shows the note in preview mode, keeping the focus on the tree.
+    /// </summary>
+    private bool typingDisabled = false;
+
+    public void DisableTyping()
+    {
+        typingDisabled = true;
+        Program.UnfocusEditor();
+    }
+
+    public void EnableTyping()
+    {
+        typingDisabled = false;
+    }
+
+    public bool IsTypingDisabled()
+    {
+        return typingDisabled;
     }
 }

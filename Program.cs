@@ -36,6 +36,7 @@ class Program
         Allow_CtrlS_Shortcut();
         SetBlockCursor();
         InitializeNotesDirectory();
+        StartResizeEventListener();
         Mainloop();
     }
 
@@ -61,6 +62,27 @@ class Program
         {
             Directory.CreateDirectory(NOTES_DIR_PATH);
         }
+    }
+
+    private static void StartResizeEventListener()
+    {
+        Task.Run(() =>
+        {
+            int width = Console.WindowWidth;
+            int height = Console.WindowHeight;
+
+            while (true)
+            {
+                if (width != Console.WindowWidth || height != Console.WindowHeight)
+                {
+                    width = Console.WindowWidth;
+                    height = Console.WindowHeight;
+                    noteTree.Set_RequiresUpdate();
+                    noteEditor.UpdateBuffers();
+                    noteEditorRequiresUpdate = true;
+                }
+            }
+        });
     }
 
     private static void Mainloop()
@@ -126,15 +148,15 @@ class Program
 
         if (note_tree_requires_update || noteEditorRequiresUpdate)
         {
-            noteEditorRequiresUpdate = false;
             AnsiConsole.Cursor.Hide();
+            noteEditorRequiresUpdate = false;
             Console.SetCursorPosition(0, 0);
             AnsiConsole.Write(display_layout);
 
             if (editorFocused)
             {
-                AnsiConsole.Cursor.Show();
                 noteEditor.UpdateCursorPosInEditor();
+                AnsiConsole.Cursor.Show();
             }
         }
     }
@@ -149,6 +171,7 @@ class Program
                 // Ctrl+L - toggle focus to the editor
                 case ConsoleKey.L:
                     if (noteEditor.GetNotePath() == null) break;
+                    if (noteEditor.IsTypingDisabled()) break;
                     editorFocused = true;
                     AnsiConsole.Cursor.Show();
                     Set_NoteEditorRequiresUpdate();
@@ -161,16 +184,16 @@ class Program
                     Process.Start("explorer.exe", path);
                     break;
 
-                // Ctrl + Up Arrow - Go to top of tree
+                // Ctrl + Up Arrow - Move up one, just like normal Up Arrow
                 case ConsoleKey.UpArrow:
                 case ConsoleKey.PageUp:
-                    noteTree.MoveSelectionToTop();
+                    noteTree.MoveSelectionUp();
                     break;
 
-                // Ctrl + Down Arrow - Go to bottom of tree
+                // Ctrl + Down Arrow - Move down one, just like normal Down Arrow
                 case ConsoleKey.DownArrow:
                 case ConsoleKey.PageDown:
-                    noteTree.MoveSelectionToBottom();
+                    noteTree.MoveSelectionDown();
                     break;
 
                 // Ctrl+W - Close the note in the editor if there's a note, otherwise close the app
@@ -298,6 +321,12 @@ class Program
                         {
                             editorFocused = true;
                             AnsiConsole.Cursor.Show();
+                        }
+
+                        if (noteEditor.IsTypingDisabled())
+                        {
+                            editorFocused = false;
+                            AnsiConsole.Cursor.Hide();
                         }
 
                         Set_NoteEditorRequiresUpdate();
@@ -489,6 +518,13 @@ class Program
                     }
 
                     noteEditor = new NoteEditor(noteTree.GetSelectedTreeItem()!.FilePath);
+
+                    // editor is focused by default
+                    if (noteEditor.IsTypingDisabled())
+                    {
+                        editorFocused = false;
+                    }
+
                     Set_NoteEditorRequiresUpdate();
                     noteTree.Set_RequiresUpdate();
                     break;
@@ -506,6 +542,13 @@ class Program
                     }
 
                     noteEditor = new NoteEditor(noteTree.GetSelectedTreeItem()!.FilePath);
+
+                    // editor is focused by default
+                    if (noteEditor.IsTypingDisabled())
+                    {
+                        editorFocused = false;
+                    }
+
                     Set_NoteEditorRequiresUpdate();
                     noteTree.Set_RequiresUpdate();
                     break;
@@ -767,8 +810,7 @@ class Program
 
     private static void HandleDeleteTreeItem()
     {
-        TreeItem? selected_tree_item = noteTree.GetSelectedTreeItem();
-        
+        TreeItem? selected_tree_item = noteTree.GetSelectedTreeItem();   
         if (selected_tree_item == null) return;
 
         Console.Clear();
@@ -819,5 +861,10 @@ class Program
     public static bool NoteTreeVisible()
     {
         return noteTree.IsVisible();
+    }
+
+    public static void UnfocusEditor()
+    {
+        editorFocused = false;
     }
 }
