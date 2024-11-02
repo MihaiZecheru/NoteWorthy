@@ -3,7 +3,7 @@
 namespace NoteWorthy;
 internal class NoteEditor
 {
-    public static readonly int DISPLAY_HEIGHT = Console.BufferHeight - 2; // -2 for panel border on top and bottom
+    public static readonly int BUFFER_HEIGHT = Console.BufferHeight - 2; // -2 for panel border on top and bottom
 
     /// <summary>
     /// The lines that make up the note
@@ -203,7 +203,7 @@ internal class NoteEditor
     {
         SaveState();
 
-        if (lines.Count == NoteEditor.DISPLAY_HEIGHT) return;
+        if (lines.Count == NoteEditor.BUFFER_HEIGHT) return;
 
         if (AtEndOfLine())
         {
@@ -861,9 +861,19 @@ internal class NoteEditor
 
     private Markup GetDisplayMarkup()
     {
+        if (lines.Count > BUFFER_HEIGHT)
+        {
+            throw new Exception("Buffer height overflow");
+        }
+
         string s = "";
         this.lines.ForEach(line =>
         {
+            if (line.Count > BUFFER_WIDTH)
+            {
+                throw new Exception("Buffer width overflow");
+            }
+
             line.ForEach((ColorChar c) =>
             {
                 if (c.Color == null)
