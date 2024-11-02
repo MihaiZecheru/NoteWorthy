@@ -16,15 +16,15 @@ internal class NoteTree
 
     /// <summary>
     /// The height of the TreeItems panel.
-    /// -3 for the footer panel
+    /// -4 for the footer panel
     /// </summary>
-    public static readonly int DISPLAY_HEIGHT = Console.BufferHeight - 3;
+    public static readonly int DISPLAY_HEIGHT = Console.BufferHeight - 4;
 
     /// <summary>
     /// The height of the buffer within the TreeItems panel
     /// -2 for the top and bottom borders.
     /// </summary>
-    private static readonly int BUFFER_HEIGHT = DISPLAY_HEIGHT - 2;
+    private static readonly int BUFFER_HEIGHT = DISPLAY_HEIGHT - 3;
 
     private readonly List<TreeItem> treeItems;
     /// <summary>
@@ -57,25 +57,25 @@ internal class NoteTree
         IEnumerable<string> files = Directory.GetFiles(directoryPath).Where((string file) => file.EndsWith(".nw"));
         string[] directories = Directory.GetDirectories(directoryPath);
 
-        IEnumerable<TreeItem> _files = files.Select((string file) =>
+        IEnumerable<TreeItem> _files = files.Select((string file_path) =>
         {
-            int len = Path.GetFileName(file)!.Length;
+            int len = Path.GetFileName(file_path)!.Length;
             if (len > BUFFER_WIDTH)
             {
-                throw new FileLoadException($"File name is too long. Must be less than {BUFFER_WIDTH} characters long. Is {len} long. Path: {file}");
+                throw new FileLoadException($"File name is too long. Must be less than {BUFFER_WIDTH} characters long. Is {len} long. Path: {file_path}");
             }
-            return new TreeItem(file, parent);
+            return new TreeItem(file_path, parent);
         });
-        IEnumerable<TreeItem> _directories = directories.Select(directory =>
+        IEnumerable<TreeItem> _directories = directories.Select(directory_path =>
         {
-            int len = Path.GetDirectoryName(directory)!.Length;
+            int len = new DirectoryInfo(directory_path)!.Name.Length;
             if (len > BUFFER_WIDTH)
             {
-                throw new FileLoadException($"Directory name is too long. Must be less than {BUFFER_WIDTH} characters long. Is {len} long. Path: {directory}");
+                throw new FileLoadException($"Directory name is too long. Must be less than {BUFFER_WIDTH} characters long. Is {len} long. Path: {directory_path}");
             }
 
-            var treeItem = new TreeItem(directory, parent);
-            treeItem.SetDirectory(LoadTreeItems(directory, treeItem));
+            var treeItem = new TreeItem(directory_path, parent);
+            treeItem.SetDirectory(LoadTreeItems(directory_path, treeItem));
             return treeItem;
         });
 
@@ -133,7 +133,7 @@ internal class NoteTree
     /// Navigate to a TreeItem in the NoteTree. 
     /// </summary>
     /// <param name="treeItem">Set to <see langword="null" /> to navigate to the root directory.</param>
-    public void NavigateToTreeItem(TreeItem? treeItem)
+    public void NavigateToTreeItemDirectory(TreeItem? treeItem)
     {
         if (treeItem != null && !treeItem.IsDir) throw new Exception("Cannot navigate to a file.");
         current_parent_treeItem = treeItem;
@@ -147,7 +147,7 @@ internal class NoteTree
     public void GoToParentIfPossible()
     {
         if (current_parent_treeItem == null) return;
-        NavigateToTreeItem(current_parent_treeItem.Parent);
+        NavigateToTreeItemDirectory(current_parent_treeItem.Parent);
     }
 
     /// <summary>
@@ -330,37 +330,53 @@ internal class NoteTree
     public bool SelectNextFileTreeItem()
     {
         // No file is selected, so you can't go to the next file
-        if (GetSelectedTreeItem() == null || GetSelectedTreeItem()!.IsDir) return false;
-        List<TreeItem> tree_items = GetParentTreeItemChildren().Where(x => !x.IsDir).ToList();
-        
+        if (GetSelectedTreeItem() == null) return false;
+        List<TreeItem> file_tree_items = GetParentTreeItemChildren().Where(x => !x.IsDir).ToList();
+
+        int index_in_files = file_tree_items.IndexOf(GetSelectedTreeItem()!);
+        requires_update = true;
+
+        // If the item is not in the list (index = -1), then the item must be a dir
+        // Go to the top file item, since dirs are always the top-most items
+        // 
         // If the selected file is the last file, select the top file
-        if (tree_items.IndexOf(GetSelectedTreeItem()!) == tree_items.Count - 1)
+        if (index_in_files == - 1 || index_in_files == file_tree_items.Count - 1)
         {
-            selected_item_index = GetParentTreeItemChildren().IndexOf(treeItems[0]);
+            selected_item_index = GetParentTreeItemChildren().IndexOf(file_tree_items[0]);
             return true;
         }
+        else
+        {
+            selected_item_index++;
+            return true;
 
-        selected_item_index = tree_items.IndexOf(GetSelectedTreeItem()!) + 1;
-        requires_update = true;
-        return true;
+        }
     }
 
     public bool SelectPreviousFileTreeItem()
     {
         // No file is selected, so you can't go to the previous file
-        if (GetSelectedTreeItem() == null || GetSelectedTreeItem()!.IsDir) return false;
-        List<TreeItem> tree_items = GetParentTreeItemChildren().Where(x => !x.IsDir).ToList();
+        if (GetSelectedTreeItem() == null) return false;
+        List<TreeItem> file_tree_items = GetParentTreeItemChildren().Where(x => !x.IsDir).ToList();
 
+        int index_in_files = file_tree_items.IndexOf(GetSelectedTreeItem()!);
+        requires_update = true;
+
+        // If the item is not in the list (index = -1), then the item must be a dir
+        // Go to the bottom item, since dirs are always the very top items above
+        // 
         // If the selected file is the first file, select the last file
-        if (tree_items.IndexOf(GetSelectedTreeItem()!) == 0)
+        if (index_in_files == -1 || index_in_files == 0)
         {
-            selected_item_index = GetParentTreeItemChildren().IndexOf(treeItems[tree_items.Count - 1]);
+            // Set to the index of the bottom file
+            selected_item_index = GetParentTreeItemChildren().IndexOf(file_tree_items[file_tree_items.Count - 1]);
             return true;
         }
-
-        selected_item_index = tree_items.IndexOf(GetSelectedTreeItem()!) - 1;
-        requires_update = true;
-        return true;
+        else
+        {
+            selected_item_index--;
+            return true;
+        }
     }
 
     private bool is_visible = true;
@@ -385,10 +401,28 @@ internal class NoteTree
     /// The copy will not be made if a file with the resulting name (name - copy.nw) already exists.
     /// </summary>
     /// <returns>True if a copy was made, false otherwise</returns>
-    public bool CopySelectedFile()
+    public bool CopySelectedTreeItem()
     {
         TreeItem? t = GetSelectedTreeItem();
-        if (t == null || t.IsDir) return false;
+        if (t == null) return false;
+
+        if (t.IsDir)
+        {
+            string dir_name = new DirectoryInfo(t.FilePath).Name;
+            string dir_path = dir_name.Length + 8 <= BUFFER_WIDTH // +8 : +7 for size of " - copy" and +1 for '/'
+                ? t.FilePath
+                : t.FilePath.Substring(0, t.FilePath.Length - dir_name.Length - 7); // -7 size of " - copy "
+            dir_path += " - Copy";
+
+            if (Directory.Exists(dir_path))
+            {
+                Console.Beep();
+                return false;
+            }
+
+            CopyDirectory(t.FilePath, dir_path);
+            return true;
+        }
 
         string file_name = Path.GetFileName(t.FilePath);
         string file_name_no_ext = Path.GetFileNameWithoutExtension(t.FilePath);
@@ -414,5 +448,26 @@ internal class NoteTree
         File.Copy(t.FilePath, new_path);
         TreeItem new_tree_item = new TreeItem(new_path, current_parent_treeItem);
         return true;
+    }
+
+    // ChatGPT function for copying dir
+    static void CopyDirectory(string sourceDir, string destDir)
+    {
+        // Create the destination directory if it doesn't exist
+        Directory.CreateDirectory(destDir);
+
+        // Get all files in the source directory and copy them to the destination directory
+        foreach (string file in Directory.GetFiles(sourceDir))
+        {
+            string destFile = Path.Combine(destDir, Path.GetFileName(file));
+            File.Copy(file, destFile, true); // Overwrite if the file already exists
+        }
+
+        // Get all subdirectories and copy them recursively
+        foreach (string subdir in Directory.GetDirectories(sourceDir))
+        {
+            string destSubDir = Path.Combine(destDir, Path.GetFileName(subdir));
+            CopyDirectory(subdir, destSubDir);
+        }
     }
 }
