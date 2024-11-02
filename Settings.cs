@@ -48,8 +48,8 @@ theme=gray // options: gray | white | black - app color theme
 
 // color options: https://spectreconsole.net/appendix/colors use the # column to identify.
 primary_color=27 // custom text color for ctrl+b (27 is dodgerblue)
-secondary_color=9 // custom text color for ctrl+i (9 is red)
-tertiary_color=46 // custom text color for ctrl+u (46 is green1)
+secondary_color=9 // custom text color for ctrl+u (9 is red)
+tertiary_color=46 // custom text color for ctrl+i (46 is green1)
 ");
     }
 
