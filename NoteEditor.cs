@@ -308,7 +308,6 @@ internal class NoteEditor
             
             if (color == null)
             {
-
                 if (HasUnsavedChanges())
                 {
                     Program.AskToSaveUnsavedChanges("The app is going to quit because the color setting is invalid. " +
@@ -323,7 +322,9 @@ internal class NoteEditor
                 return;
             }
             else
+            {
                 _char = new ColorChar((byte)c, byte.Parse(color));
+            }
         }
         else
         {
