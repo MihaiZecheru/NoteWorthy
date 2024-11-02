@@ -37,10 +37,22 @@ internal class NoteTree
         string[] directories = Directory.GetDirectories(directoryPath);
 
         IEnumerable<TreeItem> _files = files.Select((string file) =>
-            new TreeItem(file, parent)
-        );
+        {
+            int len = Path.GetFileName(file)!.Length;
+            if (len > NoteTree.DISPLAY_WIDTH - 4)
+            {
+                throw new FileLoadException($"File name is too long. Must be less than {NoteTree.DISPLAY_WIDTH - 4} characters long. Is {len} long. Path: {file}");
+            }
+            return new TreeItem(file, parent);
+        });
         IEnumerable<TreeItem> _directories = directories.Select(directory =>
         {
+            int len = Path.GetDirectoryName(directory)!.Length;
+            if (len > NoteTree.DISPLAY_WIDTH - 4)
+            {
+                throw new FileLoadException($"Directory name is too long. Must be less than {NoteTree.DISPLAY_WIDTH - 4} characters long. Is {len} long. Path: {directory}");
+            }
+
             var treeItem = new TreeItem(directory, parent);
             treeItem.SetDirectory(LoadTreeItems(directory, treeItem));
             return treeItem;
