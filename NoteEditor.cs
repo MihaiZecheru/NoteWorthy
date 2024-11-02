@@ -253,11 +253,30 @@ internal class NoteEditor
             string? color = Settings.GetSetting(
                 primary_color_on ? "primary_color" : secondary_color_on ? "secondary_color" : "tertiary_color"
             );
-            _char = new ColorChar((byte)c, color);
+            
+            if (color == null)
+            {
+
+                if (HasUnsavedChanges())
+                {
+                    Program.AskToSaveUnsavedChanges("The app is going to quit because the color setting is invalid. " +
+                        "Please fix the settings file. But first...");
+                }
+                else
+                {
+                    Console.Clear();
+                    Console.WriteLine("App closed because the color setting is invalid. Your note didn't have any unsaved changes, so you didn't lose any work.");
+                }
+                Environment.Exit(0);
+                return;
+            }
+            else
+                _char = new ColorChar((byte)c, byte.Parse(color));
         }
         else
         {
-            _char = new ColorChar((byte)c, (Color?)null);
+            // 0 is the null value (no color specified)
+            _char = new ColorChar((byte)c, 0);
         }
 
         if (AtEndOfLine())
@@ -847,10 +866,10 @@ internal class NoteEditor
         {
             line.ForEach((ColorChar c) =>
             {
-               if (c.Color == null)
-               {
-                   s += c.Char;
-               }
+                if (c.Color == null)
+                {
+                    s += c.Char;
+                }
                 else
                 {
                     s += $"[{c.Color.Value}]{c.Char}[/]";
