@@ -46,10 +46,10 @@ internal static class Settings
         File.WriteAllText(file_path, @"write_mode=insert // options: insert | overwrite - default char insert behaviour
 theme=gray // options: gray | white | black - app color theme
 
-// color options: blue | red | green | yellow | purple | light_purple | cyan | white | black | gray | orange
-primary_color=blue // custom text color for ctrl+b
-secondary_color=red // custom text color for ctrl+i
-tertiary_color=green // custom text color for ctrl+u
+// color options: https://spectreconsole.net/appendix/colors use the # column to identify.
+primary_color=27 // custom text color for ctrl+b (27 is dodgerblue)
+secondary_color=9 // custom text color for ctrl+i (9 is red)
+tertiary_color=46 // custom text color for ctrl+u (46 is green1)
 ");
     }
 
