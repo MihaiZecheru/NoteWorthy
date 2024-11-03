@@ -88,6 +88,7 @@ internal class NoteTree
     /// </summary>
     public Panel GenerateDisplayPanel()
     {
+        requires_update = false;
         List<TreeItem> _treeItems = GetParentTreeItemChildren();
 
         if (_treeItems.Count == 0)
@@ -104,7 +105,6 @@ internal class NoteTree
         }
 
         TreeItem selected_tree_item = GetSelectedTreeItem()!;
-        requires_update = false;
         string names_string = string.Join("\n", _treeItems.Select((TreeItem x) =>
             (x == selected_tree_item ? "[yellow]" : "[white]") + x.Name + (x.IsDir ? "/" : "") + "[/]"
         ));
