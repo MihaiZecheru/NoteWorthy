@@ -7,22 +7,22 @@ internal class NoteTree
     /// <summary>
     /// The width of the entire panel
     /// </summary>
-    public static readonly int DISPLAY_WIDTH = 32;
+    public static int DISPLAY_WIDTH = 32;
 
     /// <summary>
     /// The width of the text buffer that will be displayed inside the panel.
     /// </summary>
-    public static readonly int BUFFER_WIDTH = DISPLAY_WIDTH - 4;
+    public static int BUFFER_WIDTH = DISPLAY_WIDTH - 4;
 
     /// <summary>
     /// The height of the TreeItems panel.
     /// </summary>
-    public static readonly int DISPLAY_HEIGHT = Console.BufferHeight - 4; // -4 for the footer panel
+    public static int DISPLAY_HEIGHT = Console.BufferHeight - 4; // -4 for the footer panel
 
     /// <summary>
     /// The height of the buffer within the TreeItems panel
     /// </summary>
-    private static readonly int BUFFER_HEIGHT = DISPLAY_HEIGHT - 2; // -2 for the top and bottom borders.
+    public static int BUFFER_HEIGHT = DISPLAY_HEIGHT - 2; // -2 for the top and bottom borders.
 
     private readonly List<TreeItem> treeItems;
     /// <summary>
@@ -455,7 +455,7 @@ internal class NoteTree
     }
 
     // ChatGPT function for copying dir
-    static void CopyDirectory(string sourceDir, string destDir)
+    public static void CopyDirectory(string sourceDir, string destDir)
     {
         // Create the destination directory if it doesn't exist
         Directory.CreateDirectory(destDir);
@@ -473,5 +473,13 @@ internal class NoteTree
             string destSubDir = Path.Combine(destDir, Path.GetFileName(subdir));
             CopyDirectory(subdir, destSubDir);
         }
+    }
+
+    public static void UpdateBuffers()
+    {
+        DISPLAY_HEIGHT = Console.BufferHeight - 4;
+        // Display width is constant 32
+        BUFFER_HEIGHT = DISPLAY_HEIGHT - 2;
+        BUFFER_WIDTH = DISPLAY_WIDTH - 4;
     }
 }

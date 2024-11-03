@@ -19,16 +19,7 @@ class Program
     /// <summary>
     /// The layout of the display. Gets printed every time an update is required.
     /// </summary>
-    private static Layout display_layout = new Layout()
-        .SplitColumns(
-            new Layout("TreeItemsAndFooter")
-                .Size(NoteTree.DISPLAY_WIDTH)
-                .SplitRows(
-                    new Layout("TreeItems").Size(NoteTree.DISPLAY_HEIGHT),
-                    new Layout("TreeFooter")
-                ),
-            new Layout("NoteEditor")
-        );
+    private static Layout display_layout = GenerateEmptyLayout();
 
     /// <summary>
     /// Set to true when a new note is loaded (and therefore a new NoteEditor is created) in order to render the new note.
@@ -119,11 +110,29 @@ class Program
             {
                 if (width != Console.WindowWidth || height != Console.WindowHeight)
                 {
+                    if (Console.WindowHeight < 10)
+                    {
+                        Console.Clear();
+                        while (Console.WindowHeight < 10)
+                        {
+                            Console.SetCursorPosition(0, 0);
+                            Console.WriteLine("Screen height too small.");
+                        }
+                    }
+
                     width = Console.WindowWidth;
                     height = Console.WindowHeight;
-                    noteTree.Set_RequiresUpdate();
+                    Console.Clear();
+
+                    // Update buffers to reflect new screen size and regenerate layout component based on the new buffers
                     noteEditor.UpdateBuffers();
+                    NoteTree.UpdateBuffers();
+                    display_layout = GenerateEmptyLayout();
+
+                    // Update display
                     noteEditorRequiresUpdate = true;
+                    noteTree.Set_RequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
                 }
             }
         });
@@ -209,7 +218,14 @@ class Program
             noteEditorRequiresUpdate = false;
             treeFooterRequiresUpdate = false;
             Console.SetCursorPosition(0, 0);
-            AnsiConsole.Write(display_layout);
+            try
+            {
+                AnsiConsole.Write(display_layout);
+            } catch (ArgumentOutOfRangeException)
+            {
+                // Catch ArgumentOutOfRangeException that occurs when the window is resized and the layout
+                // doesn't get regenerated before the next render since that happens in a different thread
+            }
 
             if (editorFocused)
             {
@@ -1151,5 +1167,23 @@ class Program
 
         Console.Clear();
         Environment.Exit(0);
+    }
+
+    /// <summary>
+    /// Return the empty layout.
+    /// Call each time the screen size update to set the proper sizes for the layout.
+    /// </summary>
+    private static Layout GenerateEmptyLayout()
+    {
+        return new Layout()
+        .SplitColumns(
+            new Layout("TreeItemsAndFooter")
+                .Size(NoteTree.DISPLAY_WIDTH)
+                .SplitRows(
+                    new Layout("TreeItems").Size(NoteTree.DISPLAY_HEIGHT),
+                    new Layout("TreeFooter")
+                ),
+            new Layout("NoteEditor")
+        );
     }
 }

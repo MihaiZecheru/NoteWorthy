@@ -197,7 +197,7 @@ internal class NoteEditor
         int left = pos_in_line;
         int top = line_num;
 
-        if (top > Console.BufferHeight - 2)
+        if (top > BUFFER_HEIGHT)
         {
             throw new ArgumentOutOfRangeException("Cursor top position is out of bounds");
         }
@@ -209,11 +209,14 @@ internal class NoteEditor
 
         if (Program.NoteTreeVisible())
         {
-            Console.SetCursorPosition(left + NoteTree.DISPLAY_WIDTH + 2, top + 1);
+            // +2 for left and right editor border
+            // account for the note tree being visible
+            Console.SetCursorPosition(left + NoteTree.DISPLAY_WIDTH + 2 + 5, top + 1);
         }
         else
         {
-            Console.SetCursorPosition(left + 2, top + 1);
+            // +2 for left and right editor border
+            Console.SetCursorPosition(left + 2 + 5, top + 1);
         }
     }
 
@@ -227,11 +230,12 @@ internal class NoteEditor
     /// </summary>
     public void DeleteLine()
     {
-        SaveState();
-
         // If there is only one line, there aren't enough lines to delete
         if (lines.Count == 1 && lines[0].Count == 0) return;
-        else if (lines.Count == 1)
+
+        SaveState();
+
+        if (lines.Count == 1)
         {
             // Delete the line by replacing it with an empty one
             lines[0] = new();
@@ -253,8 +257,6 @@ internal class NoteEditor
     /// </summary>
     public void InsertLine()
     {
-        SaveState();
-
         if (lines.Count == BUFFER_HEIGHT) return;
 
         if (AtEndOfLine())
@@ -281,6 +283,7 @@ internal class NoteEditor
 
         line_num++;
         unsaved_changes = true;
+        SaveState();
     }
 
     /// <summary>
@@ -450,8 +453,6 @@ internal class NoteEditor
     /// </summary>
     public void DeleteWordWithBackspace()
     {
-        SaveState();
-
         if (AtBeginningOfLine())
         {
             // If the cursor is at the beginning of the first line,
@@ -472,8 +473,8 @@ internal class NoteEditor
             pos_in_line = start_of_word;
         }
 
+        SaveState();
         unsaved_changes = true;
-
     }
     
     /// <summary>
@@ -482,8 +483,6 @@ internal class NoteEditor
     /// </summary>
     public void DeleteWordWithDeleteKey()
     {
-        SaveState();
-
         if (AtEndOfLine())
         {
             // If the cursor is at the end of the last line,
@@ -502,6 +501,7 @@ internal class NoteEditor
         }
 
         unsaved_changes = true;
+        SaveState();
     }
 
     /// <summary>
@@ -592,8 +592,6 @@ internal class NoteEditor
     /// </summary>
     public void NavigateToPreviousWord()
     {
-        SaveState();
-
         if (AtBeginningOfLine())
         {
             if (OnFirstLine()) return;
@@ -604,6 +602,8 @@ internal class NoteEditor
         {
             pos_in_line = FindIndexOf_StartOfPreviousWord();
         }
+
+        SaveState();
     }
 
     /// <summary>
@@ -612,8 +612,6 @@ internal class NoteEditor
     /// </summary>
     public void NavigateToNextWord()
     {
-        SaveState();
-
         if (AtEndOfLine())
         {
             if (OnLastLine()) return;
@@ -624,6 +622,8 @@ internal class NoteEditor
         {
             pos_in_line = FindIndexOf_EndOfNextWord();
         }
+
+        SaveState();
     }
 
     private void HandlePossibleStateSave()
@@ -834,7 +834,7 @@ internal class NoteEditor
 
     public void MoveCursorUp()
     {
-        if (line_num == 0) return;
+        if (OnFirstLine()) return;
 
         line_num--;
         if (pos_in_line > lines[line_num].Count)
@@ -867,7 +867,7 @@ internal class NoteEditor
     {
         if (pos_in_line == 0)
         {
-            if (line_num == 0) return;
+            if (OnFirstLine()) return;
             line_num--;
             pos_in_line = GetCharsInLine();
         }
@@ -915,8 +915,7 @@ internal class NoteEditor
 
     public void MoveLineUp()
     {
-        if (line_num == 0) return;
-        SaveState();
+        if (OnFirstLine()) return;
 
         List<ColorChar> temp = lines[line_num];
         lines[line_num] = lines[line_num - 1];
@@ -924,12 +923,12 @@ internal class NoteEditor
 
         line_num--;
         unsaved_changes = true;
+        SaveState();
     }
 
     public void MoveLineDown()
     {
-        if (line_num == lines.Count - 1) return;
-        SaveState();
+        if (OnLastLine()) return;
 
         List<ColorChar> temp = lines[line_num];
         lines[line_num] = lines[line_num + 1];
@@ -937,26 +936,45 @@ internal class NoteEditor
 
         line_num++;
         unsaved_changes = true;
+        SaveState();
     }
 
     private Markup GetDisplayMarkup()
     {
         string s = "";
-        this.lines.ForEach(line =>
+        for (int i = 0; i < this.lines.Count; i++)
         {
-            line.ForEach((ColorChar c) =>
+            string line_number = (i + 1).ToString();
+            if (line_number.Length == 1) line_number = "0" + line_number;
+
+            // Space to make the line number stick to the right border
+            s += "[yellow]" + line_number + " | [/]";
+
+            // this.lines[i] is the line
+            for (int j = 0; j < this.lines[i].Count; j++)
             {
-                if (c.Color == null)
+                // this.lines[i][j] is the char
+                if (this.lines[i][j].Color == null)
                 {
-                    s += c.Char;
+                   s += this.lines[i][j].Char;
                 }
                 else
                 {
-                    s += $"[{c.Color.Value}]{c.Char}[/]";
+                   s += $"[{this.lines[i][j].Color!.Value}]{this.lines[i][j].Char}[/]";
                 }
-            });
-            s += "\n";
-        });
+            };
+
+            s += '\n';
+        };
+
+        for (int i = this.lines.Count; i < BUFFER_HEIGHT; i++)
+        {
+            string line_number = (i + 1).ToString();
+            if (line_number.Length == 1) line_number = "0" + line_number;
+            
+            // Space to make the line number stick to the right border
+            s += "[yellow]" + line_number + " | [/]\n";
+        }
 
         // this.lines will always have at least 1 line
         if (this.lines.Count == 1)
@@ -1011,21 +1029,21 @@ internal class NoteEditor
     }
 
     /// <summary>
-    /// The width buffer for the editor is the console width buffer - the width of the note tree - 4.
-    /// -4 comes from the border of the editor panel 
-    /// (1 left & 1 right) and the padding on each side of the panel (1 left & 1 right).
+    /// The width buffer for the editor is the console width buffer - the width of the note tree - 4 - 6.
+    /// -4 comes from the border and padding of the editor panel 
+    /// -5 gives space for the line numbers on the right side of the panel: " | xx"
     /// </summary>
     public static int _CalculateBufferWidth()
     {
         if (Program.NoteTreeVisible())
-            return Console.BufferWidth - NoteTree.DISPLAY_WIDTH - 4;
+            return Console.BufferWidth - NoteTree.DISPLAY_WIDTH - 4 - 5;
         else
-            return Console.BufferWidth - 4;
+            return Console.BufferWidth - 4 - 5;
     }
 
     /// <summary>
     /// The height buffer for the editor is the console height buffer - 2.
-    /// the -2 comes from the panel top and bottom border. 1 for top and 1 for bottom
+    /// the -2 comes from the panel top and bottom border.
     /// </summary>
     /// <returns></returns>
     public static int _CalculateBufferHeight()
@@ -1038,7 +1056,7 @@ internal class NoteEditor
         BUFFER_HEIGHT = _CalculateBufferHeight();
         BUFFER_WIDTH = _CalculateBufferWidth();
         // Reload the note to truncate the lines and disable typing if necessary
-        LoadNote();
+        if (note_path != null) LoadNote();
     }
 
     /// <summary>
