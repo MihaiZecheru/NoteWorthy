@@ -1,4 +1,5 @@
 ﻿using Spectre.Console;
+using System.Text;
 
 namespace NoteWorthy;
 internal class NoteEditor
@@ -295,6 +296,8 @@ internal class NoteEditor
         HandlePossibleStateSave();
 
         if (LineIsFull() && insertModeOn) return;
+        // For overwrite mode
+        else if (LineIsFull() && AtEndOfLine()) return;
 
         // If the char is not ascii
         if (c < 0 || c > 127)
@@ -941,50 +944,44 @@ internal class NoteEditor
 
     private Markup GetDisplayMarkup()
     {
-        string s = "";
+        StringBuilder s = new();
         for (int i = 0; i < this.lines.Count; i++)
         {
-            string line_number = (i + 1).ToString();
-            if (line_number.Length == 1) line_number = "0" + line_number;
+            string line_number = (i + 1).ToString("D2");
 
             // Space to make the line number stick to the right border
-            s += "[yellow]" + line_number + " | [/]";
+            s.Append($"[yellow]{line_number} | [/]");
 
             // this.lines[i] is the line
             for (int j = 0; j < this.lines[i].Count; j++)
             {
+                Color? color = this.lines[i][j].Color;
+                string _char = HandleSquareBrackets(this.lines[i][j].Char);
+
                 // this.lines[i][j] is the char
                 if (this.lines[i][j].Color == null)
                 {
-                   s += this.lines[i][j].Char;
+                    s.Append(_char);
                 }
                 else
                 {
-                   s += $"[{this.lines[i][j].Color!.Value}]{this.lines[i][j].Char}[/]";
+                    s.Append($"[{color!.Value}]{_char}[/]");
                 }
             };
 
-            s += '\n';
+            s.Append('\n');
         };
 
         for (int i = this.lines.Count; i < BUFFER_HEIGHT; i++)
         {
-            string line_number = (i + 1).ToString();
-            if (line_number.Length == 1) line_number = "0" + line_number;
-            
+            string line_number = (i + 1).ToString("D2");
+
             // Space to make the line number stick to the right border
-            s += "[yellow]" + line_number + " | [/]\n";
+            s.Append($"[yellow]{line_number} | [/]\n");
         }
 
-        // this.lines will always have at least 1 line
-        if (this.lines.Count == 1)
-        {
-            return new Markup(s.Substring(0, s.Length - 1));
-        }
-        else
-        {
-            return new Markup(s);
-        }
+        // Remove trailing \n
+        return new Markup(s.ToString().Substring(0, s.Length - 1));
     }
 
     public void TogglePrimaryColor()
@@ -1113,5 +1110,12 @@ internal class NoteEditor
 
         // Go to beginning of line
         pos_in_line = 0;
+    }
+
+    private string HandleSquareBrackets(char c)
+    {
+        if (c == '[') return "[[";
+        if (c == ']') return "]]";
+        return c.ToString();
     }
 }

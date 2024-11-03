@@ -1,6 +1,7 @@
 ﻿using Spectre.Console;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace NoteWorthy;
 
@@ -163,6 +164,10 @@ class Program
     /// </summary>
     private static void HandleRendering()
     {
+        var treeItemsLayout = display_layout.GetLayout("TreeItems");
+        var treeFooterLayout = display_layout.GetLayout("TreeFooter");
+        var noteEditorLayout = display_layout.GetLayout("NoteEditor");
+
         bool note_tree_requires_update = noteTree.Get_RequiresUpdate();
 
         // Note tree
@@ -177,17 +182,17 @@ class Program
             }
 
             // Will only rewrite if there's been a change to them
-            display_layout.GetLayout("TreeItems").Update(panel);
+            treeItemsLayout.Update(panel);
 
-            if (noteTree.IsVisible())
+            if (noteTree.IsVisible() )
             {
-                display_layout.GetLayout("TreeFooter").Visible();
-                display_layout.GetLayout("TreeItems").Visible();
+                treeFooterLayout.Visible();
+                treeItemsLayout.Visible();
             }
             else
             {
-                display_layout.GetLayout("TreeFooter").Invisible();
-                display_layout.GetLayout("TreeItems").Invisible();
+                treeFooterLayout.Invisible();
+                treeItemsLayout.Invisible();
             }
         }
 
@@ -201,14 +206,14 @@ class Program
                 panel.BorderColor(Color.Aqua);
             }
 
-            display_layout.GetLayout("NoteEditor").Update(panel);
+            noteEditorLayout.Update(panel);
         }
 
         // Tree footer
         if (treeFooterRequiresUpdate)
         {
             var panel = GenerateTreeFooterPanel();
-            display_layout.GetLayout("TreeFooter").Update(panel);
+            treeFooterLayout.Update(panel);
         }
 
         // If any of the panels require an update, then update the display
@@ -218,14 +223,7 @@ class Program
             noteEditorRequiresUpdate = false;
             treeFooterRequiresUpdate = false;
             Console.SetCursorPosition(0, 0);
-            try
-            {
-                AnsiConsole.Write(display_layout);
-            } catch (ArgumentOutOfRangeException)
-            {
-                // Catch ArgumentOutOfRangeException that occurs when the window is resized and the layout
-                // doesn't get regenerated before the next render since that happens in a different thread
-            }
+            AnsiConsole.Write(display_layout);
 
             if (editorFocused)
             {
@@ -781,6 +779,11 @@ class Program
     /// </summary>
     private static void RenameSelectedTreeItem()
     {
+        if (noteEditor.HasUnsavedChanges())
+        {
+            AskToSaveUnsavedChanges("[yellow]Renaming note...[/] but first");
+        }
+
         AnsiConsole.Cursor.Show();
         TreeItem? selected_item = noteTree.GetSelectedTreeItem();
         if (selected_item == null) return;
@@ -971,8 +974,15 @@ class Program
         editorFocused = false;
     }
 
+    private static string GetMarkup(string color)
+    {
+        return Spectre.Console.Color.FromInt32(byte.Parse(Settings.GetSetting(color)!)).ToMarkup();
+    }
+
     private static Panel GenerateTreeFooterPanel()
     {
+        // Looks kinda messy cus I optimized it for performance
+
         bool insertModeEnabled = noteEditor.IsInsertModeEnabled();
         bool primaryColorEnabled = noteEditor.IsPrimaryColorEnabled();
         bool secondaryColorEnabled = noteEditor.IsSecondaryColorEnabled();
@@ -983,17 +993,49 @@ class Program
         // If the mode is "overwrite" and the default setting is "overwrite", use primary.
         // Otherwise, use secondary.
         string mode_color = insertModeEnabled == (Settings.GetSetting("write_mode") == "insert") ?
-            Spectre.Console.Color.FromInt32(byte.Parse(Settings.GetSetting("primary_color")!)).ToMarkup() :
-            Spectre.Console.Color.FromInt32(byte.Parse(Settings.GetSetting("secondary_color")!)).ToMarkup();
+            GetMarkup("primary_color") :
+            GetMarkup("secondary_color");
 
-        string str = "";
+        StringBuilder str = new();
 
         // Write mode & colors
-        str += insertModeEnabled ? $"[{mode_color}]Insert Mode[/]            " : $"[{mode_color}]Overwrite Mode[/]         ";
-        str += primaryColorEnabled ? $"[{Spectre.Console.Color.FromInt32(byte.Parse(Settings.GetSetting("primary_color")!)).ToMarkup()}]B[/] " : "[white]B[/] ";
-        str += secondaryColorEnabled ? $"[{Spectre.Console.Color.FromInt32(byte.Parse(Settings.GetSetting("secondary_color")!)).ToMarkup()}]U[/] " : "[white]U[/] ";
-        str += tertiaryColorEnabled ? $"[{Spectre.Console.Color.FromInt32(byte.Parse(Settings.GetSetting("tertiary_color")!)).ToMarkup()}]I[/]" : "[white]I[/]";
-        str += "\n";
+        if (insertModeEnabled)
+        {
+            str.Append($"[{mode_color}]Insert Mode[/]            ");
+        }
+        else
+        {
+            str.Append($"[{mode_color}]Overwrite Mode[/]         ");
+        }
+
+        if (primaryColorEnabled)
+        {
+            str.Append($"[{GetMarkup("primary_color")}]B[/] ");
+        }
+        else
+        {
+            str.Append("[white]B[/] ");
+        }
+
+        if (secondaryColorEnabled)
+        {
+            str.Append($"[{GetMarkup("secondary_color")}]U[/] ");
+        }
+        else
+        {
+            str.Append("[white]U[/] ");
+        }
+
+        if (tertiaryColorEnabled)
+        {
+            str.Append($"[{GetMarkup("tertiary_color")}]I[/]");
+        }
+        else
+        {
+            str.Append("[white]I[/]");
+        }
+
+        str.Append('\n');
 
         // Cursor position and line/char count
 
@@ -1001,7 +1043,7 @@ class Program
         if (noteEditor.GetNotePath() == null)
         {
             // Placeholder values. 14 spaces are used to make the P(x, x) stick to the right border
-            str += $"T(x, x){new string(' ', 14)}P(x, x)";
+            str.Append($"T(x, x){new string(' ', 14)}P(x, x)");
         }
         // Show the T(l, c) total and the P(l, c) position
         else if (editorFocused)
@@ -1017,17 +1059,17 @@ class Program
             // Space count: 14 spaces would make P(x, x) stick to the right border. +4 - digit - digit - digit - digit will adjust the
             // spaces so that the P(x, x) sticks to the right border when x has more digits. the +4 accounts for each num being at least one digit
             int space_count = 14 + 4 - GetDigitCount(line) - GetDigitCount(col) - GetDigitCount(lineCount) - GetDigitCount(charCount);
-            str += $"T({lineCount}, {charCount}){new string(' ', space_count)}P({line}, {col})";
+            str.Append($"T({lineCount}, {charCount}){new string(' ', space_count)}P({line}, {col})");
         }
         else // if editor not focused, but there is a note, that means the editor is in preview mode. show only the total lines and total char count
         {
             int lineCount = noteEditor.GetLineCount();
             int charCount = noteEditor.GetNoteCharCount();
             int space_count = 14 + 2 - GetDigitCount(lineCount) - GetDigitCount(charCount);
-            str += $"T({lineCount}, {charCount}){new string(' ', space_count)}P(x, x)";
+            str.Append($"T({lineCount}, {charCount}){new string(' ', space_count)}P(x, x)");
         }
 
-        return new Panel(str).Expand().RoundedBorder();
+        return new Panel(str.ToString()).Expand().RoundedBorder();
     }
 
     public static void SetTreeFooterRequiresUpdate()
