@@ -1,4 +1,5 @@
 ﻿using Spectre.Console;
+using System.Linq;
 using System.Text;
 
 namespace NoteWorthy;
@@ -1143,5 +1144,180 @@ internal class NoteEditor
         {
             InsertChar(' ');
         }
+    }
+
+    private static Dictionary<ConsoleKey, string> tree_ctrl_functions = new Dictionary<ConsoleKey, string>()
+    {
+        { ConsoleKey.Q, "Quit NoteWorthy" },
+        { ConsoleKey.L, "Toggle focus to the editor" },
+        { ConsoleKey.O, "Open current directory in file explorer" },
+        { ConsoleKey.UpArrow, "Preview the previous note" },
+        { ConsoleKey.DownArrow, "Preview the next note" },
+        { ConsoleKey.W, "Close the editor" },
+        { ConsoleKey.N, "Create new note" },
+        { ConsoleKey.M, "Create new folder" },
+        { ConsoleKey.R, "Reload the tree" },
+        { ConsoleKey.D, "Delete the selected tree item" },
+        { ConsoleKey.D8, "Open the settings file" },
+        { ConsoleKey.D1, "Toggle tree visibility" },
+        { ConsoleKey.H, "Toggle this help panel" }
+    };
+
+    private static Dictionary<ConsoleKey, string> tree_regular_functions = new Dictionary<ConsoleKey, string>()
+    {
+        { ConsoleKey.UpArrow, "Move selection up" },
+        { ConsoleKey.DownArrow, "Move selection down" },
+        { ConsoleKey.Home, "Move selection to top" },
+        { ConsoleKey.End, "Move selection to bottom" },
+        { ConsoleKey.Escape, "Go to parent dir" },
+        { ConsoleKey.Enter, "Open the selected note" },
+        { ConsoleKey.Spacebar, "Preview the selected note" },
+        { ConsoleKey.Tab, "Switch focus to the editor" },
+        { ConsoleKey.H, "Toggle this help panel" },
+        { ConsoleKey.F2, "Rename the selected item" },
+        { ConsoleKey.N, "Create new note" },
+        { ConsoleKey.M, "Create new folder" },
+        { ConsoleKey.Delete, "Delete selected tree item" },
+        { ConsoleKey.Backspace, "Delete selected tree item" }
+    };
+
+    private static Dictionary<ConsoleKey, string> editor_ctrl_functions = new Dictionary<ConsoleKey, string>()
+    {
+        { ConsoleKey.Q, "Quit NoteWorthy" },
+        { ConsoleKey.L, "Toggle focus to the tree" },
+        { ConsoleKey.S, "Save note" },
+        { ConsoleKey.R, "Reload note" },
+        { ConsoleKey.D, "Delete current line" },
+        { ConsoleKey.W, "Close editor" },
+        { ConsoleKey.Z, "Undo" },
+        { ConsoleKey.Y, "Redo" },
+        { ConsoleKey.End, "Move to end of note" },
+        { ConsoleKey.Home, "Move to start of note" },
+        { ConsoleKey.LeftArrow, "Move to previous word" },
+        { ConsoleKey.RightArrow, "Move to next word" },
+        { ConsoleKey.K, "Toggle insert mode" },
+        { ConsoleKey.Backspace, "Delete word" },
+        { ConsoleKey.Delete, "Delete word (to the right)" },
+        { ConsoleKey.N, "Create new note" },
+        { ConsoleKey.M, "Create new folder" },
+        { ConsoleKey.O, "Open current directory in file explorer" },
+        { ConsoleKey.D8, "Open the settings file" },
+        { ConsoleKey.UpArrow, "Preview the previous note" },
+        { ConsoleKey.DownArrow, "Preview the next note" },
+        { ConsoleKey.B, "Toggle primary color" },
+        { ConsoleKey.U, "Toggle secondary color" },
+        { ConsoleKey.I, "Toggle tertiary color" },
+        { ConsoleKey.D1, "Toggle tree visibility" },
+        { ConsoleKey.G, "Go to line" },
+        { ConsoleKey.H, "Toggle the help panel" },
+    };
+
+    private static Dictionary<ConsoleKey, string> editor_regular_functions = new Dictionary<ConsoleKey, string>()
+    {
+        { ConsoleKey.Escape, "Unfocus editor / focus tree" },
+        { ConsoleKey.Enter, "Add new line" },
+        { ConsoleKey.UpArrow, "Move cursor up" },
+        { ConsoleKey.DownArrow, "Move cursor down" },
+        { ConsoleKey.LeftArrow, "Move cursor left" },
+        { ConsoleKey.RightArrow, "Nove cursor right" },
+        { ConsoleKey.End, "Move to end of line" },
+        { ConsoleKey.Home, "Move to start of line" },
+        { ConsoleKey.Insert, "Toggle insert mode" },
+        { ConsoleKey.Backspace, "Delete character" },
+        { ConsoleKey.Delete, "Delete character (to the right)" },
+        { ConsoleKey.F2, "Rename note" },
+        { ConsoleKey.Tab, "Insert tab" }
+    };
+
+    /// <summary>
+    /// Open the help panel and show it until a key is pressed
+    /// </summary>
+    public void ToggleHelpPanel()
+    {
+        bool cursorWasVisible = Console.CursorVisible;
+        AnsiConsole.Cursor.Hide();
+
+        int start_display_index = 0;
+        ConsoleKeyInfo lastKeyPress = new ConsoleKeyInfo();
+        _renderHelpPanel(lastKeyPress, start_display_index);
+
+        while (true)
+        {
+            if (!Console.KeyAvailable)
+            {
+                Thread.Sleep(1000);
+            }
+            else
+            {
+                lastKeyPress = Console.ReadKey(true);
+
+                if (lastKeyPress.Key == ConsoleKey.H && lastKeyPress.Modifiers.HasFlag(ConsoleModifiers.Control))
+                {
+                    break;
+                }
+            }
+
+            _renderHelpPanel(lastKeyPress, start_display_index);
+            start_display_index++;
+        }
+
+        if (cursorWasVisible)
+        {
+            AnsiConsole.Cursor.Show();
+        }
+    }
+
+    private void _renderHelpPanel(ConsoleKeyInfo lastKeyPressInfo, int start_display_index)
+    {
+        // The shortcut / key that the user pressed should be highlighted in the help panel
+
+        // 2x2 grid. 1st column is tree and 2nd is editor. top is ctrl and bottom is regular
+        var layout = new Layout("HelpScreen").SplitColumns(
+            new Layout("Tree").SplitRows(
+                new Layout("TreeCtrl"),
+                new Layout("TreeRegular")
+            ),
+            new Layout("Editor").SplitRows(
+                new Layout("EditorCtrl"),
+                new Layout("EditorRegular")
+            )
+        );
+
+        // Tree Ctrl
+        layout.GetLayout("TreeCtrl").Update(_generateHelpPanel(lastKeyPressInfo, tree_ctrl_functions, isCtrl: true, "Tree Ctrl", start_display_index));
+
+        // Editor Ctrl
+        layout.GetLayout("EditorCtrl").Update(_generateHelpPanel(lastKeyPressInfo, editor_ctrl_functions, isCtrl: true, "Editor Ctrl", start_display_index));
+
+        // Tree Regular
+        layout.GetLayout("TreeRegular").Update(_generateHelpPanel(lastKeyPressInfo ,tree_regular_functions, isCtrl: false, "Tree Regular", start_display_index));
+
+        // Editor Regular
+        layout.GetLayout("EditorRegular").Update(_generateHelpPanel(lastKeyPressInfo, editor_regular_functions, isCtrl: false, "Editor Regular", start_display_index));
+
+        Console.SetCursorPosition(0, 0);
+        AnsiConsole.Write(layout);
+    }
+
+    /// <summary>
+    /// Generate one of the four panels to display in the help panel
+    /// </summary>
+    /// <param name="keymap">The keymap mapping keys to shortcut descriptions</param>
+    /// <param name="isCtrl">True if the <paramref name="keymap"/> is for control keys, false if it's for regulaer</param>
+    /// <returns></returns>
+    private Panel _generateHelpPanel(ConsoleKeyInfo lastKeyPressInfo, Dictionary<ConsoleKey, string> keymap, bool isCtrl, string panelHeader, int start_display_index)
+    {
+        int bufferHeight = (Console.BufferHeight - 4) / 2;
+
+        int skip_amount = keymap.Count > bufferHeight ? start_display_index % (keymap.Count - bufferHeight + 1): 0;
+
+        string ctrlString = isCtrl ? "Ctrl+" : "";
+        return new Panel(
+            keymap.Skip(skip_amount).Aggregate("", (acc, kv) =>
+            {
+                string color = kv.Key == lastKeyPressInfo.Key ? "aqua" : "yellow";
+                return acc + $"[{color}]{ctrlString}{kv.Key}[/] - {kv.Value}\n";
+            })
+        ).Expand().RoundedBorder().Header("[aqua]" + panelHeader + "[/]").BorderColor(Color.Aqua);
     }
 }

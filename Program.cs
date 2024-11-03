@@ -332,6 +332,13 @@ class Program
                     noteTree.ToggleVisibility();
                     SetTreeFooterRequiresUpdate();
                     break;
+
+                // Ctrl+H - Toggle the help panel
+                case ConsoleKey.H:
+                    noteEditor.ToggleHelpPanel();
+                    Set_NoteEditorRequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
+                    break;
             }
         }
         // For functionality with regular keypresses
@@ -340,35 +347,46 @@ class Program
             TreeItem? selected_tree_item = noteTree.GetSelectedTreeItem();
             switch (keyInfo.Key)
             {
-                // Up Arrow - move selection up
+                // Tab - Toggle focus to the editor
+                case ConsoleKey.Tab:
+                    if (noteEditor.GetNotePath() == null) break;
+                    if (noteEditor.IsTypingDisabled()) break;
+                    editorFocused = true;
+                    AnsiConsole.Cursor.Show();
+                    noteTree.Set_RequiresUpdate();
+                    Set_NoteEditorRequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
+                    break;
+
+                // Up Arrow - Move selection up
                 case ConsoleKey.UpArrow:
                 case ConsoleKey.PageUp:
                     noteTree.MoveSelectionUp();
                     break;
 
-                // Down Arrow - move selection down
+                // Down Arrow - Move selection down
                 case ConsoleKey.DownArrow:
                 case ConsoleKey.PageDown:
                     noteTree.MoveSelectionDown();
                     break;
 
-                // Home - move selection to top
+                // Home - Move selection to top
                 case ConsoleKey.Home:
                     noteTree.MoveSelectionToTop();
                     break;
 
-                // End - move selection to bottom
+                // End - Move selection to bottom
                 case ConsoleKey.End:
                     noteTree.MoveSelectionToBottom();
                     break;
 
-                // Escape | B - Go to parent directory (go back)
+                // Escape | B | Tab - Go to parent directory (go back)
                 case ConsoleKey.Escape:
                 case ConsoleKey.B:
                     noteTree.GoToParentIfPossible();
                     break;
 
-                // Enter | Space - open the note in the editor.
+                // Enter | Space - Open the note in the editor.
                 // If space is pressed, keep the tree focused. If enter is pressed, focus the editor.
                 case ConsoleKey.Enter:
                 case ConsoleKey.Spacebar:
@@ -418,7 +436,7 @@ class Program
                     Set_NoteEditorRequiresUpdate();
                     break;
 
-                // F2 - rename the selected item
+                // F2 - Rename the selected item
                 case ConsoleKey.F2:
                     RenameSelectedTreeItem();
                     noteTree.Set_RequiresUpdate();
@@ -657,6 +675,13 @@ class Program
                     noteTree.Set_RequiresUpdate();
                     SetTreeFooterRequiresUpdate();
                     break;
+
+                // Ctrl+H - Toggle the help panel
+                case ConsoleKey.H:
+                    noteEditor.ToggleHelpPanel();
+                    Set_NoteEditorRequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
+                    break;
             }
         }
         // For functionality with regular keypresses
@@ -664,7 +689,7 @@ class Program
         {
             switch (keyInfo.Key)
             {
-                // Unfocus the editor, therefore focusing the tree
+                // Escape - Unfocus the editor, therefore focusing the tree
                 case ConsoleKey.Escape:
                     editorFocused = false;
                     AnsiConsole.Cursor.Hide();
@@ -673,7 +698,7 @@ class Program
                     SetTreeFooterRequiresUpdate();
                     break;
 
-                // Enter - add new line at current position
+                // Enter - Add new line at current position
                 case ConsoleKey.Enter:
                     noteEditor.InsertLine();
                     Set_NoteEditorRequiresUpdate();
@@ -732,7 +757,7 @@ class Program
                     SetTreeFooterRequiresUpdate();
                     break;
 
-                // Insert - toggle insert mode
+                // Insert - Toggle insert mode
                 case ConsoleKey.Insert:
                     noteEditor.ToggleInsertMode();
                     break;
@@ -751,7 +776,7 @@ class Program
                     SetTreeFooterRequiresUpdate();
                     break;
 
-                // F2 - rename the current note
+                // F2 - Rename the current note
                 case ConsoleKey.F2:
                     RenameSelectedTreeItem();
                     noteTree.Set_RequiresUpdate();
