@@ -912,6 +912,12 @@ class Program
             }
         }
 
+        if (selected_tree_item.FilePath == noteEditor.GetNotePath())
+        {
+            noteEditor = new NoteEditor(null);
+            editorFocused = false;
+        }
+
         Set_NoteEditorRequiresUpdate();
         noteTree.Set_RequiresUpdate();
     }
