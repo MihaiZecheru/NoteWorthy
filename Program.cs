@@ -90,6 +90,12 @@ class Program
         Console.SetCursorPosition(0, 0);
     }
 
+    private static void SetSkinnyCursor()
+    {
+        Console.Write("\u001b[6 q");
+        Console.SetCursorPosition(0, 0);
+    }
+
     private static void Allow_CtrlS_Shortcut()
     {
         IntPtr consoleHandle = GetStdHandle(-10);
@@ -635,6 +641,19 @@ class Program
                     noteTree.ToggleVisibility();
                     SetTreeFooterRequiresUpdate();
                     break;
+
+                // Ctrl+G - Go to line
+                case ConsoleKey.G:
+                    int? navigate_to = GetLineToNavigateTo();
+                    if (navigate_to != null)
+                    {
+                        noteEditor.GoToLine((int)navigate_to);
+                    }
+
+                    Set_NoteEditorRequiresUpdate();
+                    noteTree.Set_RequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
+                    break;
             }
         }
         // For functionality with regular keypresses
@@ -1043,5 +1062,81 @@ class Program
         Set_NoteEditorRequiresUpdate();
         noteTree.Set_RequiresUpdate();
         SetTreeFooterRequiresUpdate();
+    }
+
+    private static int? GetLineToNavigateTo()
+    {
+        SetSkinnyCursor();
+        string prompt = " | Line:    |";
+        // +2 to account for the two digits the user can enter. -1 for the space at the front
+        string dotted_line = ' ' + new string('-', prompt.Length - 1);
+
+        // Draw dotted line above prompt
+        // Puts the cursor in the top left of the panel, minus horizontal space for the dotted line
+        // Console.BufferWidth - 3 is top left of the panel
+        // - dotted_line.Length to account for the dotted line that will be written
+        Console.SetCursorPosition(Console.BufferWidth - 3 - dotted_line.Length, 1);
+        AnsiConsole.Markup($"[yellow]{dotted_line}[/]");
+
+        // Write the prompt
+        // Puts the cursor one lower than the top left of the panel, minus horizontal space for the prompt
+        // Console.BufferWidth - 3 is top left of the panel
+        // - prompt.Length to account for the prompt that will be written
+        Console.SetCursorPosition(Console.BufferWidth - 3 - prompt.Length, 2);
+        AnsiConsole.Markup($"[yellow]{prompt}[/]");
+
+        // Draw dotted line underneath prompt
+        // // Puts the cursor two lines lower than the top left of the panel, minus horizontal space for the dotted line
+        // Console.BufferWidth - 3 is top left of the panel
+        // - dotted_line.Length to account for the dotted line that will be written
+        Console.SetCursorPosition(Console.BufferWidth - 3 - dotted_line.Length, 3);
+        AnsiConsole.Markup($"[yellow]{dotted_line}[/]");
+        // the additional -4 is to move it to the center of this ascii box, giving space for the user's two-char input
+        Console.SetCursorPosition(Console.BufferWidth - 3 - 4, 2);
+
+        // Get the line num from the user
+        string input = "";
+        while (true)
+        {
+            if (!Console.KeyAvailable) continue;
+            ConsoleKeyInfo keyInfo = Console.ReadKey(true);
+
+            // Q will quit the Ctrl+G, returning null
+            if (keyInfo.Key == ConsoleKey.Q)
+            {
+                SetBlockCursor();
+                return null;
+            }
+
+            // Enter will return the input
+            if (keyInfo.Key == ConsoleKey.Enter) break;
+
+            // Clear input
+            if (keyInfo.Key == ConsoleKey.Backspace)
+            {
+                while (input.Length > 0)
+                {
+                    input = input.Remove(input.Length - 1);
+                    Console.Write("\b \b");
+                }
+                continue;
+            }
+
+            // Do not allow non-digits 0 through 9
+            if (!char.IsAsciiDigit(keyInfo.KeyChar)) continue;
+
+            // Do not allow 0 to be the first digit
+            if (keyInfo.Key == ConsoleKey.D0 && input.Length == 0) continue;
+
+            // A maximum of two digits can be entered
+            if (input.Length == 2) continue;
+
+            // Add the digit to the input
+            input += keyInfo.KeyChar;
+            AnsiConsole.Markup("[dodgerblue2]" + keyInfo.KeyChar + "[/]");
+        }
+
+        SetBlockCursor();
+        return input.Length == 0 ? null : int.Parse(input);
     }
 }

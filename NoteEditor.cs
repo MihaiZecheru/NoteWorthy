@@ -1074,4 +1074,26 @@ internal class NoteEditor
     {
         return (line_num, pos_in_line);
     }
+
+    /// <summary>
+    /// Navigate to the given <paramref name="line"/> in the editor
+    /// </summary>
+    /// <param name="line">The line to go to. The first line is 1, not 0, since user inputs it</param>
+    public void GoToLine(int line)
+    {
+        // Line cannot be less than 1
+        if (line <= 0) throw new Exception("Something went wrong. It's not possible for line to be less than 1. line = " + line);
+
+        // User inputs line starting at 1
+        line--;
+
+        // If given line greater than max line, go to last line
+        if (line > lines.Count - 1)
+            line_num = lines.Count - 1;
+        else
+            line_num = line;
+
+        // Go to beginning of line
+        pos_in_line = 0;
+    }
 }
