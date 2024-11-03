@@ -131,7 +131,7 @@ class Program
                     display_layout = GenerateEmptyLayout();
 
                     // Update display
-                    noteEditorRequiresUpdate = true;
+                    Set_NoteEditorRequiresUpdate();
                     noteTree.Set_RequiresUpdate();
                     SetTreeFooterRequiresUpdate();
                 }
@@ -758,6 +758,13 @@ class Program
                     Set_NoteEditorRequiresUpdate();
                     // focus the tree in case user wants to keep renaming stuff
                     editorFocused = false;
+                    break;
+
+                // Tab - Insert Settings.TabSize amount of spaces
+                case ConsoleKey.Tab:
+                    noteEditor.InsertTab();
+                    Set_NoteEditorRequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
                     break;
 
                 // Print char to the editor if it is a non-control char

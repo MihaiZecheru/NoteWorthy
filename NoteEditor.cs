@@ -260,6 +260,8 @@ internal class NoteEditor
     {
         if (lines.Count == BUFFER_HEIGHT) return;
 
+        SaveState();
+
         if (AtEndOfLine())
         {
             lines.Insert(line_num + 1, new List<ColorChar>());
@@ -284,7 +286,6 @@ internal class NoteEditor
 
         line_num++;
         unsaved_changes = true;
-        SaveState();
     }
 
     /// <summary>
@@ -463,6 +464,7 @@ internal class NoteEditor
             // Instead, delete the current line and append it to the previous line
 
             if (OnFirstLine()) return;
+            SaveState();
             int prev_line_length = LineLength(line_num - 1);
             lines[line_num - 1].AddRange(lines[line_num]);
             lines.RemoveAt(line_num);
@@ -471,12 +473,12 @@ internal class NoteEditor
         }
         else
         {
+            SaveState();
             int start_of_word = FindIndexOf_StartOfPreviousWord();
             lines[line_num].RemoveRange(start_of_word, pos_in_line - start_of_word);
             pos_in_line = start_of_word;
         }
 
-        SaveState();
         unsaved_changes = true;
     }
     
@@ -493,18 +495,19 @@ internal class NoteEditor
             // Instead, delete the current line and append it to the next line
 
             if (OnLastLine()) return;
+            SaveState();
             lines[line_num].AddRange(lines[line_num + 1]);
             lines.RemoveAt(line_num + 1);
         }
         else
         {
+            SaveState();
             int end_of_word = FindIndexOf_EndOfNextWord();
             lines[line_num].RemoveRange(pos_in_line, end_of_word - pos_in_line);
             // pos_in_line does not have to be modified because the word to the RIGHT of the cursor is deleted
         }
 
         unsaved_changes = true;
-        SaveState();
     }
 
     /// <summary>
@@ -598,15 +601,15 @@ internal class NoteEditor
         if (AtBeginningOfLine())
         {
             if (OnFirstLine()) return;
+            SaveState();
             line_num--;
             pos_in_line = GetCharsInLine();
         }
         else
         {
+            SaveState();
             pos_in_line = FindIndexOf_StartOfPreviousWord();
         }
-
-        SaveState();
     }
 
     /// <summary>
@@ -618,15 +621,15 @@ internal class NoteEditor
         if (AtEndOfLine())
         {
             if (OnLastLine()) return;
+            SaveState();
             line_num++;
             pos_in_line = 0;
         }
         else
         {
+            SaveState();
             pos_in_line = FindIndexOf_EndOfNextWord();
         }
-
-        SaveState();
     }
 
     private void HandlePossibleStateSave()
@@ -920,26 +923,26 @@ internal class NoteEditor
     {
         if (OnFirstLine()) return;
 
+        SaveState();
         List<ColorChar> temp = lines[line_num];
         lines[line_num] = lines[line_num - 1];
         lines[line_num - 1] = temp;
 
         line_num--;
         unsaved_changes = true;
-        SaveState();
     }
 
     public void MoveLineDown()
     {
         if (OnLastLine()) return;
 
+        SaveState();
         List<ColorChar> temp = lines[line_num];
         lines[line_num] = lines[line_num + 1];
         lines[line_num + 1] = temp;
 
         line_num++;
         unsaved_changes = true;
-        SaveState();
     }
 
     private Markup GetDisplayMarkup()
@@ -1117,5 +1120,28 @@ internal class NoteEditor
         if (c == '[') return "[[";
         if (c == ']') return "]]";
         return c.ToString();
+    }
+
+    public void InsertTab()
+    {
+        int size = Settings.TabSize;
+        bool tab_fits = lines[line_num].Count <= BUFFER_WIDTH - 4;
+
+        // Check early return conditions
+        if (insertModeOn)
+        {
+            if (!tab_fits) return;
+        }
+        else
+        {
+            if (!tab_fits && pos_in_line > BUFFER_WIDTH - 4) return;
+        }
+        
+        SaveState();
+
+        for (int i = 0; i < size; i++)
+        {
+            InsertChar(' ');
+        }
     }
 }

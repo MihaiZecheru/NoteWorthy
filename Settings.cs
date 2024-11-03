@@ -7,6 +7,7 @@ internal static class Settings
 {
     private static string file_path = Path.Combine(Directory.GetCurrentDirectory(), "settings.txt");
     private static ReadOnlyDictionary<string, string> settings = LoadSettings();
+    public static int TabSize = int.Parse(GetSetting("tab_size") ?? "4");
 
     /// <summary>
     /// Load settings from the settings file and return them formatted as a dictionary.
@@ -45,6 +46,7 @@ internal static class Settings
     {
         File.WriteAllText(file_path, @"write_mode=insert // options: insert | overwrite - default char insert behaviour
 theme=gray // options: gray | white | black - app color theme
+tab_size=4 // number of spaces per tab (defaults to 4)
 
 // color options: https://spectreconsole.net/appendix/colors use the # column to identify.
 primary_color=27 // custom text color for ctrl+b (27 is dodgerblue)
