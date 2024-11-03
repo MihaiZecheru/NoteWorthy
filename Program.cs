@@ -591,7 +591,7 @@ class Program
 
                 // Ctrl+8 - Open the settings file
                 case ConsoleKey.D8:
-                    Process.Start("notepad.exe", "settings.json");
+                    Process.Start("notepad.exe", "settings.txt");
                     break;
 
                 // Ctrl+DownArrow - Navigate to the next note (downwards)
