@@ -90,12 +90,6 @@ class Program
         Console.SetCursorPosition(0, 0);
     }
 
-    private static void SetSkinnyCursor()
-    {
-        Console.Write("\u001b[6 q");
-        Console.SetCursorPosition(0, 0);
-    }
-
     private static void Allow_CtrlS_Shortcut()
     {
         IntPtr consoleHandle = GetStdHandle(-10);
@@ -234,7 +228,7 @@ class Program
             {
                 // Ctrl+Q - Quit \ close application
                 case ConsoleKey.Q:
-                    Environment.Exit(0);
+                    ExitApplication();
                     break;
 
                 // Ctrl+L - Toggle focus to the editor
@@ -271,7 +265,7 @@ class Program
                     if (noteEditor.GetNotePath() == null)
                     {
                         // If the user presses Ctrl+W when there is no note, close the app
-                        Environment.Exit(0);
+                        ExitApplication();
                     }
                     else
                     {
@@ -445,12 +439,7 @@ class Program
             {
                 // Ctrl+Q - Quit \ close application
                 case ConsoleKey.Q:
-                    if (noteEditor.GetNotePath() != null && noteEditor.HasUnsavedChanges())
-                    {
-                        bool save_changes = AskToSaveUnsavedChanges("[yellow]Closing NoteWorthy... [/]but first:");
-                        if (save_changes) noteEditor.Save();
-                    }
-                    Environment.Exit(0);
+                    ExitApplication();
                     break;
 
                 // Ctrl+L - Toggle focus to the tree
@@ -1066,7 +1055,7 @@ class Program
 
     private static int? GetLineToNavigateTo()
     {
-        SetSkinnyCursor();
+        AnsiConsole.Cursor.Hide();
         string prompt = " | Line:    |";
         // +2 to account for the two digits the user can enter. -1 for the space at the front
         string dotted_line = ' ' + new string('-', prompt.Length - 1);
@@ -1092,6 +1081,10 @@ class Program
         Console.SetCursorPosition(Console.BufferWidth - 3 - dotted_line.Length, 3);
         AnsiConsole.Markup($"[yellow]{dotted_line}[/]");
         // the additional -4 is to move it to the center of this ascii box, giving space for the user's two-char input
+
+        // Write two blue zeros in the middle of the ascii box
+        Console.SetCursorPosition(Console.BufferWidth - 3 - 4, 2);
+        AnsiConsole.Markup("[dodgerblue2]00[/]");
         Console.SetCursorPosition(Console.BufferWidth - 3 - 4, 2);
 
         // Get the line num from the user
@@ -1104,7 +1097,7 @@ class Program
             // Q will quit the Ctrl+G, returning null
             if (keyInfo.Key == ConsoleKey.Q)
             {
-                SetBlockCursor();
+                AnsiConsole.Cursor.Show();
                 return null;
             }
 
@@ -1117,12 +1110,13 @@ class Program
                 while (input.Length > 0)
                 {
                     input = input.Remove(input.Length - 1);
-                    Console.Write("\b \b");
+                    AnsiConsole.Markup("\b[dodgerblue2]0[/]\b");
                 }
+
                 continue;
             }
 
-            // Do not allow non-digits 0 through 9
+            // Do not allow non-digits
             if (!char.IsAsciiDigit(keyInfo.KeyChar)) continue;
 
             // Do not allow 0 to be the first digit
@@ -1133,10 +1127,23 @@ class Program
 
             // Add the digit to the input
             input += keyInfo.KeyChar;
-            AnsiConsole.Markup("[dodgerblue2]" + keyInfo.KeyChar + "[/]");
+            Console.SetCursorPosition(Console.BufferWidth - 3 - 4, 2);
+            AnsiConsole.Markup("[dodgerblue2]" + (input.Length == 1 ? "0" : "") + input + "[/]");
         }
 
-        SetBlockCursor();
+        AnsiConsole.Cursor.Show();
         return input.Length == 0 ? null : int.Parse(input);
+    }
+
+    private static void ExitApplication()
+    {
+        if (noteEditor.GetNotePath() != null && noteEditor.HasUnsavedChanges())
+        {
+            bool save_changes = AskToSaveUnsavedChanges("[yellow]Closing NoteWorthy... [/]but first:");
+            if (save_changes) noteEditor.Save();
+        }
+
+        Console.Clear();
+        Environment.Exit(0);
     }
 }
