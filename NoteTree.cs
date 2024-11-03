@@ -16,15 +16,13 @@ internal class NoteTree
 
     /// <summary>
     /// The height of the TreeItems panel.
-    /// -4 for the footer panel
     /// </summary>
-    public static readonly int DISPLAY_HEIGHT = Console.BufferHeight - 4;
+    public static readonly int DISPLAY_HEIGHT = Console.BufferHeight - 4; // -4 for the footer panel
 
     /// <summary>
     /// The height of the buffer within the TreeItems panel
-    /// -2 for the top and bottom borders.
     /// </summary>
-    private static readonly int BUFFER_HEIGHT = DISPLAY_HEIGHT - 3;
+    private static readonly int BUFFER_HEIGHT = DISPLAY_HEIGHT - 2; // -2 for the top and bottom borders.
 
     private readonly List<TreeItem> treeItems;
     /// <summary>
@@ -42,6 +40,11 @@ internal class NoteTree
     /// True when the display should be updated.
     /// </summary>
     private bool requires_update = true;
+
+    /// <summary>
+    /// The index of the item at the start of the display
+    /// </summary>
+    private int display_start_index = 0;
 
     public NoteTree()
     {
@@ -90,6 +93,7 @@ internal class NoteTree
     {
         requires_update = false;
         List<TreeItem> _treeItems = GetParentTreeItemChildren();
+        _treeItems = _treeItems.GetRange(display_start_index, Math.Min(BUFFER_HEIGHT, _treeItems.Count));
 
         if (_treeItems.Count == 0)
         {
@@ -97,11 +101,6 @@ internal class NoteTree
                 .Header("[yellow] " + (current_parent_treeItem == null ? "Root" : current_parent_treeItem.Name) + " [/]")
                 .Expand()
                 .RoundedBorder();
-        }
-
-        if (_treeItems.Count > Console.BufferHeight - 2)
-        {
-            _treeItems = _treeItems.Skip(selected_item_index).ToList();
         }
 
         TreeItem selected_tree_item = GetSelectedTreeItem()!;
@@ -175,6 +174,7 @@ internal class NoteTree
         else
         {
             selected_item_index--;
+            display_start_index = Math.Max(0, display_start_index - 1);
             Set_RequiresUpdate();
         }
     }
@@ -188,12 +188,15 @@ internal class NoteTree
         else
         {
             selected_item_index++;
+            display_start_index = Math.Min(display_start_index + 1, GetParentTreeItemChildren().Count - BUFFER_HEIGHT);
+            display_start_index = display_start_index < 0 ? 0 : display_start_index;
             Set_RequiresUpdate();
         }
     }
 
     public void MoveSelectionToTop()
     {
+        display_start_index = 0;
         selected_item_index = 0;
         Set_RequiresUpdate();
     }
@@ -201,6 +204,7 @@ internal class NoteTree
     public void MoveSelectionToBottom()
     {
         selected_item_index = GetParentTreeItemChildren().Count - 1;
+        display_start_index = Math.Max(0, GetParentTreeItemChildren().Count - BUFFER_HEIGHT);
         Set_RequiresUpdate();
     }
 
