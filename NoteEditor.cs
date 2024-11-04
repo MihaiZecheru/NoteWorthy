@@ -1167,8 +1167,8 @@ internal class NoteEditor
     {
         { ConsoleKey.UpArrow, "Move selection up" },
         { ConsoleKey.DownArrow, "Move selection down" },
-        { ConsoleKey.Home, "Move selection to top" },
-        { ConsoleKey.End, "Move selection to bottom" },
+        { ConsoleKey.Home, "Move selection to top tree" },
+        { ConsoleKey.End, "Move selection to bottom tree" },
         { ConsoleKey.Escape, "Go to parent dir" },
         { ConsoleKey.Enter, "Open the selected note" },
         { ConsoleKey.Spacebar, "Preview the selected note" },
@@ -1215,7 +1215,7 @@ internal class NoteEditor
     private static Dictionary<ConsoleKey, string> editor_regular_functions = new Dictionary<ConsoleKey, string>()
     {
         { ConsoleKey.Escape, "Unfocus editor / focus tree" },
-        { ConsoleKey.Enter, "Add new line" },
+        { ConsoleKey.Enter, "Insert new line" },
         { ConsoleKey.UpArrow, "Move cursor up" },
         { ConsoleKey.DownArrow, "Move cursor down" },
         { ConsoleKey.LeftArrow, "Move cursor left" },
