@@ -1161,21 +1161,21 @@ class Program
         // Console.BufferWidth - 3 is top left of the panel
         // - dotted_line.Length to account for the dotted line that will be written
         Console.SetCursorPosition(Console.BufferWidth - 3 - dotted_line.Length, 1);
-        AnsiConsole.Markup($"[yellow]{dotted_line}[/]");
+        AnsiConsole.Markup($"[yellow]{dotted_line} [/]");
 
         // Write the prompt
         // Puts the cursor one lower than the top left of the panel, minus horizontal space for the prompt
         // Console.BufferWidth - 3 is top left of the panel
         // - prompt.Length to account for the prompt that will be written
         Console.SetCursorPosition(Console.BufferWidth - 3 - prompt.Length, 2);
-        AnsiConsole.Markup($"[yellow]{prompt}[/]");
+        AnsiConsole.Markup($"[yellow]{prompt} [/]");
 
         // Draw dotted line underneath prompt
         // // Puts the cursor two lines lower than the top left of the panel, minus horizontal space for the dotted line
         // Console.BufferWidth - 3 is top left of the panel
         // - dotted_line.Length to account for the dotted line that will be written
         Console.SetCursorPosition(Console.BufferWidth - 3 - dotted_line.Length, 3);
-        AnsiConsole.Markup($"[yellow]{dotted_line}[/]");
+        AnsiConsole.Markup($"[yellow]{dotted_line} [/]");
         // the additional -4 is to move it to the center of this ascii box, giving space for the user's two-char input
 
         // Write two blue zeros in the middle of the ascii box
