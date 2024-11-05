@@ -45,12 +45,22 @@ class Program
 
     public static void Main()
     {
+        // Setup
         Make_CtrlC_CopySelectedTreeItem();
         Allow_CtrlS_Shortcut();
         SetBlockCursor();
         InitializeNotesDirectory();
         StartResizeEventListener();
-        Mainloop();
+
+        // Mainloop with error handling for unknown bugs
+        try
+        {
+            Mainloop();
+        }
+        catch (Exception ex)
+        {
+            HandleFatalError(ex);
+        }
     }
 
     [DllImport("user32.dll")]
@@ -1259,5 +1269,42 @@ class Program
                 ),
             new Layout("NoteEditor")
         );
+    }
+
+    /// <summary>
+    /// Handle an error that terminated the <see cref="Mainloop"/> of the application by:
+    /// Notifying the user of the bug and prompting them to save their note if they had unsaved work.
+    /// so that they don't lose their progress if some random unknown bug caused the application to crash while they're writing something
+    /// </summary>
+    private static void HandleFatalError(Exception ex)
+    {
+        AnsiConsole.Cursor.Hide();
+        Console.Clear();
+        AnsiConsole.Markup("[red]An unknown error caused the application to crash.[/] [yellow]Please read below:[/]\n\n");
+
+        if (noteEditor.GetNotePath() != null && noteEditor.HasUnsavedChanges())
+        {
+            AnsiConsole.Markup("[yellow]You had [orange1]unsaved changes[/] when the application crashed. [orange1]Do you want to save them?[/][/] [yellow]([lime]Y[/] or [red]N[/])[/]\n\n");
+
+            while (true)
+            {
+                if (!Console.KeyAvailable) continue;
+
+                ConsoleKeyInfo keyInfo = Console.ReadKey(true);
+                if (keyInfo.Key == ConsoleKey.Y)
+                {
+                    noteEditor.Save();
+                    break;
+                }
+                else if (keyInfo.Key == ConsoleKey.N)
+                {
+                    break;
+                }
+            }
+        }
+
+        AnsiConsole.Markup("[yellow]The error message is displayed below.\nPlease send the developer a picture of the error message at [lime]zecheruchris@gmail.com[/] if possible[/]\n\n");
+        AnsiConsole.WriteException(ex);
+        AnsiConsole.Cursor.Show();
     }
 }
