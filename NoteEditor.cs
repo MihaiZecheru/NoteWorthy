@@ -291,8 +291,6 @@ internal class NoteEditor
     /// <param name="c">Char to insert</param>
     public void InsertChar(char c)
     {
-        HandlePossibleStateSave();
-
         if (LineIsFull() && insertModeOn) return;
         // For overwrite mode
         else if (LineIsFull() && AtEndOfLine()) return;
@@ -405,8 +403,6 @@ internal class NoteEditor
     /// </summary>
     public void DeleteCharWithBackspace()
     {
-        HandlePossibleStateSave();
-
         if (AtBeginningOfLine())
         {
             if (OnFirstLine()) return;
@@ -432,8 +428,6 @@ internal class NoteEditor
     /// </summary>
     public void DeleteCharWithDeleteKey()
     {
-        HandlePossibleStateSave();
-
         if (AtEndOfLine())
         {
             if (OnLastLine()) return;
@@ -621,19 +615,6 @@ internal class NoteEditor
         }
     }
 
-    private void HandlePossibleStateSave()
-    {
-        // Save the state every 50 characters
-        if (chars_since_last_state_save >= 50)
-        {
-            SaveState();
-        }
-        else
-        {
-            chars_since_last_state_save++;
-        }
-    }
-
     public void Undo()
     {
         if (history.IsEmpty) return;
@@ -770,7 +751,7 @@ internal class NoteEditor
         if (this.note_path == null) return;
         if (!unsaved_changes) return;
 
-        // Note: do not call SaveState() in this function. It will create double entries in the history stack
+        SaveState();
 
         // Get bytes
         List<byte> bytes = new();
