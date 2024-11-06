@@ -30,7 +30,7 @@ internal class NoteEditor
     private LimitedStack<(
         List<List<ColorChar>> note_content,
         (int cursor_line_num, int cursor_pos_in_line)
-    )> history = new(maxSize: 75);
+    )> history = new(maxSize: 10);
 
     /// <summary>
     /// Just like the history stack, except this stack keeps track of the states that were undone.
@@ -235,8 +235,6 @@ internal class NoteEditor
         // If there is only one line, there aren't enough lines to delete
         if (lines.Count == 1 && lines[0].Count == 0) return;
 
-        SaveState();
-
         if (lines.Count == 1)
         {
             // Delete the line by replacing it with an empty one
@@ -260,8 +258,6 @@ internal class NoteEditor
     public void InsertLine()
     {
         if (lines.Count == BUFFER_HEIGHT) return;
-
-        SaveState();
 
         if (AtEndOfLine())
         {
@@ -465,7 +461,6 @@ internal class NoteEditor
             // Instead, delete the current line and append it to the previous line
 
             if (OnFirstLine()) return;
-            SaveState();
             int prev_line_length = LineLength(line_num - 1);
             lines[line_num - 1].AddRange(lines[line_num]);
             lines.RemoveAt(line_num);
@@ -474,7 +469,6 @@ internal class NoteEditor
         }
         else
         {
-            SaveState();
             int start_of_word = FindIndexOf_StartOfPreviousWord();
             lines[line_num].RemoveRange(start_of_word, pos_in_line - start_of_word);
             pos_in_line = start_of_word;
@@ -496,13 +490,11 @@ internal class NoteEditor
             // Instead, delete the current line and append it to the next line
 
             if (OnLastLine()) return;
-            SaveState();
             lines[line_num].AddRange(lines[line_num + 1]);
             lines.RemoveAt(line_num + 1);
         }
         else
         {
-            SaveState();
             int end_of_word = FindIndexOf_EndOfNextWord();
             lines[line_num].RemoveRange(pos_in_line, end_of_word - pos_in_line);
             // pos_in_line does not have to be modified because the word to the RIGHT of the cursor is deleted
@@ -602,13 +594,11 @@ internal class NoteEditor
         if (AtBeginningOfLine())
         {
             if (OnFirstLine()) return;
-            SaveState();
             line_num--;
             pos_in_line = GetCharsInLine();
         }
         else
         {
-            SaveState();
             pos_in_line = FindIndexOf_StartOfPreviousWord();
         }
     }
@@ -622,19 +612,18 @@ internal class NoteEditor
         if (AtEndOfLine())
         {
             if (OnLastLine()) return;
-            SaveState();
             line_num++;
             pos_in_line = 0;
         }
         else
         {
-            SaveState();
             pos_in_line = FindIndexOf_EndOfNextWord();
         }
     }
 
     private void HandlePossibleStateSave()
     {
+        // Save the state every 50 characters
         if (chars_since_last_state_save >= 50)
         {
             SaveState();
@@ -924,7 +913,6 @@ internal class NoteEditor
     {
         if (OnFirstLine()) return;
 
-        SaveState();
         List<ColorChar> temp = lines[line_num];
         lines[line_num] = lines[line_num - 1];
         lines[line_num - 1] = temp;
@@ -937,7 +925,6 @@ internal class NoteEditor
     {
         if (OnLastLine()) return;
 
-        SaveState();
         List<ColorChar> temp = lines[line_num];
         lines[line_num] = lines[line_num + 1];
         lines[line_num + 1] = temp;
@@ -1138,8 +1125,6 @@ internal class NoteEditor
             if (!tab_fits && pos_in_line > BUFFER_WIDTH - 4) return;
         }
         
-        SaveState();
-
         for (int i = 0; i < size; i++)
         {
             InsertChar(' ');
