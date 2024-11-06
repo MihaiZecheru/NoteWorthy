@@ -635,7 +635,7 @@ internal class NoteEditor
 
     private void HandlePossibleStateSave()
     {
-        if (chars_since_last_state_save >= 10)
+        if (chars_since_last_state_save >= 50)
         {
             SaveState();
         }
