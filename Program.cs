@@ -232,7 +232,8 @@ class Program
             AnsiConsole.Cursor.Hide();
             noteEditorRequiresUpdate = false;
             treeFooterRequiresUpdate = false;
-            Console.SetCursorPosition(0, 0);
+            SetBlockCursor();
+            //Console.SetCursorPosition(0, 0);
             AnsiConsole.Write(display_layout);
 
             if (editorFocused)
