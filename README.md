@@ -12,6 +12,8 @@ No scrolling in the editor allows you to see the entire note at once and not hav
 
 **I recommend using the** `One Half Dark` **theme on wt.exe (windows terminal).**
 
+![half dark theme](https://github.com/user-attachments/assets/d74c77bf-27cf-433f-b915-044df174912e)
+
 # Shortcuts
 
 The two most important shortcuts are Ctrl+UpArrow and Ctrl+DownArrow, which are used to navigate through the notes in the current folder.
