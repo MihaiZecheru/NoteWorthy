@@ -65,15 +65,9 @@ internal class NoteEditor
     private bool unsaved_changes = false;
 
     /// <summary>
-    /// The amount of characters since the state was last saved. Used for Ctrl+Z shortcut.
-    /// The state will be saved every 10 characters.
-    /// </summary>
-    private int chars_since_last_state_save = 0;
-
-    /// <summary>
     /// If true, typing chars will insert them into the line. If false, typing chars will overwrite the whatever is at the cursor.
     /// </summary>
-    private bool insertModeOn = Settings.GetSetting("write_mode") == "insert";
+    private bool insertModeOn = Settings.InsertMode;
 
     /// <summary>
     /// If the primary color is on, the next char will be colored with the primary color.
@@ -175,9 +169,6 @@ internal class NoteEditor
     {
         // Clear the redoStack when a change is made cus you can't go back
         redoStack.Clear();
-
-        // Reset the char counter since the state was saved
-        chars_since_last_state_save = 0;
 
         // Deep copy the note to save its state.
         List<List<ColorChar>> noteCopy = lines.Select(line => new List<ColorChar>(line)).ToList();
@@ -281,7 +272,8 @@ internal class NoteEditor
             // If the current line is a vocab definition, the new line will be indented with a space
             // Vocab definitions are detected when there is a colon followed by a space in the line prior to the halfway-point of the line and
             // the line is also within 9 chars of being full
-            else if (line_chars.Count >= BUFFER_WIDTH - 9 && line_chars.Contains(':') && line_chars.IndexOf(':') <= line_chars.Count / 2 && lines[line_num][line_chars.IndexOf(':') + 1] == ' ')
+            // The : cannot be the first character
+            else if (line_chars.Count >= BUFFER_WIDTH - 9 && line_chars.IndexOf(':') != 0 && line_chars.Contains(':') && line_chars.IndexOf(':') <= line_chars.Count / 2 && lines[line_num][line_chars.IndexOf(':') + 1] == ' ')
             {
                 ColorChar space_char = new((byte)' ', 0);
                 
@@ -350,32 +342,29 @@ internal class NoteEditor
             c = RemoveDiacritics(c);
         }
 
+        // Auto-capitalize lines if the setting is on and the char is a letter. The 'or' is for checking for "    - " case
+        if (
+            Settings.AutoCapitalizeLines
+            &&
+            char.IsAsciiLetter(c)
+            && (
+                AtBeginningOfLine()
+                ||
+                (lines[line_num].Count == 6 && lines[line_num][0].Char == ' ' && lines[line_num][1].Char == ' ' && lines[line_num][2].Char == ' ' && lines[line_num][3].Char == ' ' && lines[line_num][4].Char == '-' && lines[line_num][5].Char == ' ')
+            )
+        )
+        {
+            c = char.ToUpper(c);
+        }
+
+        // Add color to char
         ColorChar _char;
         if (primary_color_on || secondary_color_on || tertiary_color_on)
         {
-            string? color = Settings.GetSetting(
-                primary_color_on ? "primary_color" : secondary_color_on ? "secondary_color" : "tertiary_color"
-            );
-            
-            if (color == null)
-            {
-                if (HasUnsavedChanges())
-                {
-                    Program.AskToSaveUnsavedChanges("[red]The app is going to quit because the color setting is invalid. [/]" +
-                        "Please fix the settings file. But first...");
-                }
-                else
-                {
-                    Console.Clear();
-                    Console.WriteLine("App closed because the color setting is invalid. Your note didn't have any unsaved changes, so you didn't lose any work.");
-                }
-
-                Environment.Exit(0);
-                return;
-            }
+            byte color = primary_color_on ? Settings.PrimaryColor : secondary_color_on ? Settings.SecondaryColor : Settings.TertiaryColor;
             
             // Set the char
-            _char = new ColorChar((byte)c, byte.Parse(color));
+            _char = new ColorChar((byte)c, color);
 
             // The color was only activated for a single character. Use the color on this character and then turn the color off
             if (colorActiveForOneChar)
@@ -388,18 +377,29 @@ internal class NoteEditor
         }
         else
         {
-            // 0 is the null value (no color specified)
-            _char = new ColorChar((byte)c, 0);
+            // If AutoColorNumbers is on and the char is a number, color it with the SecondaryColor as specified
+            if (Settings.AutoColorNumbers && char.IsAsciiDigit(c))
+            {
+                _char = new ColorChar((byte)c, Settings.SecondaryColor);
+            }
+            else
+            {
+                // 0 is the null value (no color specified)
+                _char = new ColorChar((byte)c, 0);
+            }
         }
 
+        // Insert char
         if (AtEndOfLine())
         {
             // Just add the character to the end of the line if the cursor is at the end of the line,
             // regardless of the mode (insert or overwrite)
-            // Before adding the char, check for the dash + space indent thing. If a dash then a space is typed, the dash will automatically be tabbed
 
-            if (lines[line_num].Count == 1 && lines[line_num][0].Char == '-' && c == ' ')
+            // Before adding the char, check for the dash + space indent thing.
+            // If a dash then a space is typed and the line prior contains text (isn't empty), the dash will automatically be tabbed
+            if (lines[line_num].Count == 1 && lines[line_num][0].Char == '-' && c == ' ' && line_num >= 1 && lines[line_num - 1].Count != 0)
             {
+                // _char is a space here
                 lines[line_num] = new List<ColorChar>()
                 {
                     _char, _char, _char, _char, new ColorChar((byte)'-', 0), _char
@@ -490,6 +490,13 @@ internal class NoteEditor
             // Check if line is equal to "    - " and the cursor is at the end of the line. If true, delete the whole line
             if (lines[line_num].Count == 6 && lines[line_num][0].Char == ' ' && lines[line_num][1].Char == ' ' && lines[line_num][2].Char == ' ' && lines[line_num][3].Char == ' ' && lines[line_num][4].Char == '-' && lines[line_num][5].Char == ' ')
             {
+                lines[line_num] = new();
+                pos_in_line = 0;
+            }
+            // Check if the entire line is spaces. If so, clear proceeding spaces
+            else if (AtEndOfLine() && lines[line_num].All(c => c.Char == ' '))
+            {
+                // Clear spaces
                 lines[line_num] = new();
                 pos_in_line = 0;
             }
@@ -1257,7 +1264,7 @@ internal class NoteEditor
 
     public void InsertTab()
     {
-        int size = Settings.TabSize;
+        int size = 4;
         bool tab_fits = lines[line_num].Count <= BUFFER_WIDTH - 4;
 
         // Check early return conditions
