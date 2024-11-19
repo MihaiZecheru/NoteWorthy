@@ -1191,7 +1191,7 @@ class Program
 
         // Write two blue zeros in the middle of the ascii box
         Console.SetCursorPosition(Console.BufferWidth - 3 - 4, 2);
-        AnsiConsole.Markup("[dodgerblue2]00[/]");
+        AnsiConsole.Markup("[blue]00[/]");
         Console.SetCursorPosition(Console.BufferWidth - 3 - 4, 2);
 
         // Get the line num from the user
@@ -1217,7 +1217,7 @@ class Program
                 while (input.Length > 0)
                 {
                     input = input.Remove(input.Length - 1);
-                    AnsiConsole.Markup("\b[dodgerblue2]0[/]\b");
+                    AnsiConsole.Markup("\b[blue]0[/]\b");
                 }
 
                 continue;
@@ -1235,7 +1235,7 @@ class Program
             // Add the digit to the input
             input += keyInfo.KeyChar;
             Console.SetCursorPosition(Console.BufferWidth - 3 - 4, 2);
-            AnsiConsole.Markup("[dodgerblue2]" + (input.Length == 1 ? "0" : "") + input + "[/]");
+            AnsiConsole.Markup("[blue]" + (input.Length == 1 ? "0" : "") + input + "[/]");
         }
 
         AnsiConsole.Cursor.Show();
