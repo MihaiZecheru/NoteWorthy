@@ -18,15 +18,26 @@ internal static class Settings
 
         string[] lines = File.ReadAllLines(file_path);
 
-        Dictionary<string, string> s = new();
-        foreach (string line in lines) {
-            if (line.Length == 0 || line.StartsWith("// ")) continue;
-            string[] parts = line.Split('=');
-            parts[1] = parts[1].Substring(0, parts[1].Length - parts[1].IndexOf(" //"));
-            s.Add(parts[0].Trim(), parts[1].Trim());
-        }
+        try
+        {
+            Dictionary<string, string> s = new();
+            
+            foreach (string line in lines) {
+                if (line.Length == 0 || line.StartsWith("// ")) continue;
+                string[] parts = line.Split('=');
+                parts[1] = parts[1].Substring(0, parts[1].Length - parts[1].IndexOf(" //"));
+                s.Add(parts[0].Trim(), parts[1].Trim());
+            }
 
-        return new ReadOnlyDictionary<string, string>(s);
+            return new ReadOnlyDictionary<string, string>(s);
+        } catch (Exception)
+        {
+            Console.Clear();
+            Console.WriteLine("Your settings were formatted incorrectly, so the file was reset to its default state. Press any key to continue.");
+            Console.ReadKey(true);
+            CreateDefaultSettingsFile();
+            return LoadSettings();
+        }
     }
 
     public static string? GetSetting(string key)
@@ -51,7 +62,7 @@ tab_size=4 // number of spaces per tab (defaults to 4)
 // color options: https://spectreconsole.net/appendix/colors use the # column to identify.
 primary_color=12 // custom text color for ctrl+b (12 is blue)
 secondary_color=2 // custom text color for ctrl+u (2 is green)
-tertiary_color=9// custom text color for ctrl+i (9 is red)
+tertiary_color=9 // custom text color for ctrl+i (9 is red)
 ");
     }
 
