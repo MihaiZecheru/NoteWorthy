@@ -443,7 +443,7 @@ internal class NoteEditor
             line_num--;
             pos_in_line = prev_line_length;
         }
-        // Not at beginning of line - just remove the char
+        // Not at beginning of line - just remove the char, but first check conditions for deleting tabs and "    - "
         else
         {
             // Check if line is equal to "    - " and the cursor is at the end of the line. If true, delete the whole line
@@ -452,6 +452,13 @@ internal class NoteEditor
                 lines[line_num] = new();
                 pos_in_line = 0;
             }
+            // Check if the cursor is at the end of the line and the previous four chars make a tab. If true, delete the tab
+            else if (lines[line_num].Count >= 4 && lines[line_num][pos_in_line - 1].Char == ' ' && lines[line_num][pos_in_line - 2].Char == ' ' && lines[line_num][pos_in_line - 3].Char == ' ' && lines[line_num][pos_in_line - 4].Char == ' ')
+            {
+                lines[line_num].RemoveRange(pos_in_line - 4, 4);
+                pos_in_line -= 4;
+            }
+            // Delete the char normally
             else
             {
                 lines[line_num].RemoveAt(pos_in_line - 1);
