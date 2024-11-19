@@ -49,9 +49,9 @@ theme=gray // options: gray | white | black - app color theme
 tab_size=4 // number of spaces per tab (defaults to 4)
 
 // color options: https://spectreconsole.net/appendix/colors use the # column to identify.
-primary_color=27 // custom text color for ctrl+b (27 is dodgerblue)
-secondary_color=9 // custom text color for ctrl+u (9 is red)
-tertiary_color=46 // custom text color for ctrl+i (46 is green1)
+primary_color=12 // custom text color for ctrl+b (12 is blue)
+secondary_color=2 // custom text color for ctrl+u (2 is green)
+tertiary_color=9// custom text color for ctrl+i (9 is red)
 ");
     }
 
