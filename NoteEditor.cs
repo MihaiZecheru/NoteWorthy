@@ -340,9 +340,17 @@ internal class NoteEditor
                 Environment.Exit(0);
                 return;
             }
-            else
+            
+            // Set the char
+            _char = new ColorChar((byte)c, byte.Parse(color));
+
+            // The color was only activated for a single character. Use the color on this character and then turn the color off
+            if (colorActiveForOneChar)
             {
-                _char = new ColorChar((byte)c, byte.Parse(color));
+                primary_color_on = false;
+                secondary_color_on = false;
+                tertiary_color_on = false;
+                colorActiveForOneChar = false;
             }
         }
         else
@@ -1011,6 +1019,14 @@ internal class NoteEditor
         return new Markup(s.ToString().Substring(0, s.Length - 1));
     }
 
+    /// <summary>
+    /// Used to keep track of the color for a single char with ctrl+shift+(b|u|i)
+    /// </summary>
+    bool colorActiveForOneChar = false;
+
+    /// <summary>
+    /// Toggle the primary color
+    /// </summary>
     public void TogglePrimaryColor()
     {
         if (!primary_color_on && !secondary_color_on && !tertiary_color_on)
@@ -1026,6 +1042,20 @@ internal class NoteEditor
         tertiary_color_on = false;
     }
 
+    /// <summary>
+    /// Set the primary color for one char only
+    /// </summary>
+    public void SetPrimaryColorForOneChar()
+    {
+        primary_color_on = true;
+        secondary_color_on = false;
+        tertiary_color_on = false;
+        colorActiveForOneChar = true;
+    }
+
+    /// <summary>
+    /// Toggle the secondary color
+    /// </summary>
     public void ToggleSecondaryColor()
     {
         if (!primary_color_on && !secondary_color_on && !tertiary_color_on)
@@ -1041,6 +1071,17 @@ internal class NoteEditor
         tertiary_color_on = false;
     }
 
+    public void SetSecondaryColorForOneChar()
+    {
+        primary_color_on = false;
+        secondary_color_on = true;
+        tertiary_color_on = false;
+        colorActiveForOneChar = true;
+    }
+
+    /// <summary>
+    /// Toggle the tertiary color
+    /// </summary>
     public void ToggleTertiaryColor()
     {
         if (!primary_color_on && !secondary_color_on && !tertiary_color_on)
@@ -1054,6 +1095,17 @@ internal class NoteEditor
 
         primary_color_on = false;
         secondary_color_on = false;
+    }
+
+    /// <summary>
+    /// Set the tertiary color for one char only
+    /// </summary>
+    public void SetTertiaryColorForOneChar()
+    {
+        primary_color_on = false;
+        secondary_color_on = false;
+        tertiary_color_on = true;
+        colorActiveForOneChar = true;
     }
 
     public bool IsPrimaryColorEnabled()
@@ -1249,9 +1301,9 @@ internal class NoteEditor
         { ConsoleKey.D8, "Open the settings file (+shift to reload it)" },
         { ConsoleKey.UpArrow, "Preview the previous note" },
         { ConsoleKey.DownArrow, "Preview the next note" },
-        { ConsoleKey.B, "Toggle primary color" },
-        { ConsoleKey.U, "Toggle secondary color" },
-        { ConsoleKey.I, "Toggle tertiary color" },
+        { ConsoleKey.B, "Toggle primary color (+shift for solo char)" },
+        { ConsoleKey.U, "Toggle secondary color (+shift for solo char)" },
+        { ConsoleKey.I, "Toggle tertiary color (+shift for solo char)" },
         { ConsoleKey.D1, "Toggle tree visibility" },
         { ConsoleKey.G, "Go to line" },
         { ConsoleKey.H, "Toggle the help panel" },

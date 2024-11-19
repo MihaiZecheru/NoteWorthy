@@ -689,20 +689,47 @@ class Program
                     break;
 
                 // Ctrl+B - Toggle primary color
+                // Ctrl+Shift+B - Set primary color for only one character
                 case ConsoleKey.B:
-                    noteEditor.TogglePrimaryColor();
+                    if (keyInfo.Modifiers.HasFlag(ConsoleModifiers.Shift))
+                    {
+                        noteEditor.SetPrimaryColorForOneChar();
+                    }
+                    else
+                    {
+                        noteEditor.TogglePrimaryColor();
+                    }
+
                     SetTreeFooterRequiresUpdate();
                     break;
 
                 // Ctrl+U - Toggle secondary color
+                // Ctrl+Shift+U - Set secondary color for only one character
                 case ConsoleKey.U:
-                    noteEditor.ToggleSecondaryColor();
+                    if (keyInfo.Modifiers.HasFlag(ConsoleModifiers.Shift))
+                    {
+                        noteEditor.SetSecondaryColorForOneChar();
+                    }
+                    else
+                    {
+                        noteEditor.ToggleSecondaryColor();
+                    }
+
                     SetTreeFooterRequiresUpdate();
                     break;
 
                 // Ctrl+I - Toggle tertiary color
+                // Ctrl+Shift+I - Set tertiary color for only one character
                 case ConsoleKey.I:
-                    noteEditor.ToggleTertiaryColor();
+                    if (keyInfo.Modifiers.HasFlag(ConsoleModifiers.Shift))
+                    {
+                        noteEditor.SetTertiaryColorForOneChar();
+                    }
+                    else
+                    {
+                        noteEditor.ToggleTertiaryColor();
+                    }
+
                     SetTreeFooterRequiresUpdate();
                     break;
 
