@@ -931,20 +931,31 @@ class Program
         {
             // Rename in file system
             Directory.Move(selected_item.FilePath, Path.Combine(Path.GetDirectoryName(selected_item.FilePath)!, new_name!));
+            noteTree = new NoteTree(selected_item.FilePath);
         }
         else
         {
             if (!new_name!.EndsWith(".nw")) new_name += ".nw";
             // Rename in file system
             File.Move(selected_item.FilePath, Path.Combine(Path.GetDirectoryName(selected_item.FilePath)!, new_name));
+
+            // Parent is starting dir so remake editor normally
+            if (selected_item.Parent == null)
+            {
+                noteTree = new NoteTree();
+            }
+            // Parent is a different dir so go to it
+            else
+            {
+                noteTree = new NoteTree(selected_item.Parent.FilePath);
+            }
         }
 
         // Remake tree in order to reflect changes
         // This was required because the GetSelectedTreeItem was returning a deep copy, not a reference
         // Therefore, the changes weren't being reflected in the tree, and it was not possible to get a deep copy to how GetSelectedTreeItem works.
         // Do not try to refact this.
-        
-        noteTree = new NoteTree();
+
         noteEditor = new NoteEditor(null);
         noteTree.SetVisible();
         Set_NoteEditorRequiresUpdate();
@@ -1052,6 +1063,17 @@ class Program
         {
             noteEditor = new NoteEditor(null);
             editorFocused = false;
+        }
+
+        // Parent is starting dir so remake editor normally
+        if (selected_tree_item.Parent == null)
+        {
+            noteTree = new NoteTree();
+        }
+        // Parent is a different dir so go to it
+        else
+        {
+            noteTree = new NoteTree(selected_tree_item.Parent.FilePath);
         }
 
         Set_NoteEditorRequiresUpdate();

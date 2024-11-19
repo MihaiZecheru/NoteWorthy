@@ -49,13 +49,18 @@ internal class NoteTree
     public NoteTree()
     {
         // Load the notes from the notes directory
-        treeItems = LoadTreeItems(Program.NOTES_DIR_PATH, null);
+        treeItems = LoadTreeItems(Program.NOTES_DIR_PATH, null, null);
+    }
+
+    public NoteTree(string starting_selected_dir_path)
+    {
+        treeItems = LoadTreeItems(Program.NOTES_DIR_PATH, null, starting_selected_dir_path);
     }
 
     /// <summary>
     /// Get the notes from the notes directory and add them to the NoteTree as TreeItems.
     /// </summary>
-    private static List<TreeItem> LoadTreeItems(string directoryPath, TreeItem? parent)
+    private List<TreeItem> LoadTreeItems(string directoryPath, TreeItem? parent, string? starting_selected_dir_path)
     {
         IEnumerable<string> files = Directory.GetFiles(directoryPath).Where((string file) => file.EndsWith(".nw"));
         string[] directories = Directory.GetDirectories(directoryPath);
@@ -63,22 +68,32 @@ internal class NoteTree
         IEnumerable<TreeItem> _files = files.Select((string file_path) =>
         {
             int len = Path.GetFileName(file_path)!.Length;
+            
             if (len > BUFFER_WIDTH)
             {
                 throw new FileLoadException($"File name is too long. Must be less than {BUFFER_WIDTH} characters long. Is {len} long. Path: {file_path}");
             }
+
             return new TreeItem(file_path, parent);
         });
+
         IEnumerable<TreeItem> _directories = directories.Select(directory_path =>
         {
             int len = new DirectoryInfo(directory_path)!.Name.Length;
+            
             if (len > BUFFER_WIDTH)
             {
                 throw new FileLoadException($"Directory name is too long. Must be less than {BUFFER_WIDTH} characters long. Is {len} long. Path: {directory_path}");
             }
 
             var treeItem = new TreeItem(directory_path, parent);
-            treeItem.SetDirectory(LoadTreeItems(directory_path, treeItem));
+            treeItem.SetDirectory(LoadTreeItems(directory_path, treeItem, starting_selected_dir_path));
+
+            if (directory_path == starting_selected_dir_path)
+            {
+                current_parent_treeItem = treeItem;
+            }
+
             return treeItem;
         });
 
