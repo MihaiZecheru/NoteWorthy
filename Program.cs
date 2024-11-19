@@ -710,8 +710,16 @@ class Program
                     break;
 
                 // Enter - Add new line at current position
+                // Shift+Enter - Move to next line without breaking current line. Like a normal enter but without splitting the line up if the cursor is in the middle of it
                 case ConsoleKey.Enter:
-                    noteEditor.InsertLine();
+                    if (keyInfo.Modifiers.HasFlag(ConsoleModifiers.Shift))
+                    {
+                        noteEditor.MoveCursorDown();
+                    }
+                    else
+                    {
+                        noteEditor.InsertLine();
+                    }
                     Set_NoteEditorRequiresUpdate();
                     SetTreeFooterRequiresUpdate();
                     break;

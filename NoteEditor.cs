@@ -1183,7 +1183,7 @@ internal class NoteEditor
         { ConsoleKey.Escape, "Unfocus editor / focus tree" },
         { ConsoleKey.Enter, "Insert new line" },
         { ConsoleKey.UpArrow, "Move cursor up" },
-        { ConsoleKey.DownArrow, "Move cursor down" },
+        { ConsoleKey.DownArrow, "Move cursor down (shift+enter)" },
         { ConsoleKey.LeftArrow, "Move cursor left" },
         { ConsoleKey.RightArrow, "Nove cursor right" },
         { ConsoleKey.End, "Move to end of line" },
