@@ -255,7 +255,9 @@ internal class NoteEditor
     }
 
     /// <summary>
-    /// Insert line at the current position
+    /// Insert line at the current position.
+    /// 
+    /// Accounts for special cases like the automatic dash + space indent and the automatic vocab-indent when a word is defined with a semicolon
     /// </summary>
     public void InsertLine()
     {
@@ -263,6 +265,8 @@ internal class NoteEditor
 
         if (AtEndOfLine())
         {
+            List<char> line_chars = lines[line_num].Select(l => l.Char).ToList();
+
             // If the current line is indented + dash + space, the new line will be indented with a dash + space too
             // Ex, if it starts with this: "    - "
             if (lines[line_num].Count >= 6 && lines[line_num][0].Char == ' ' && lines[line_num][1].Char == ' ' && lines[line_num][2].Char == ' ' && lines[line_num][3].Char == ' ' && lines[line_num][4].Char == '-' && lines[line_num][5].Char == ' ')
@@ -274,6 +278,35 @@ internal class NoteEditor
                 });
                 pos_in_line = 6;
             }
+            // If the current line is a vocab definition, the new line will be indented with a space
+            // Vocab definitions are detected when there is a colon followed by a space in the line prior to the halfway-point of the line and
+            // the line is also within 9 chars of being full
+            else if (line_chars.Count >= BUFFER_WIDTH - 9 && line_chars.Contains(':') && line_chars.IndexOf(':') <= line_chars.Count / 2 && lines[line_num][line_chars.IndexOf(':') + 1] == ' ')
+            {
+                ColorChar space_char = new((byte)' ', 0);
+                
+                int colon_index = line_chars.IndexOf(':') + 2; // +2 to account for the colon itself and the space that follows it
+                lines.Insert(line_num + 1, new());
+
+                for (int i = 0; i < colon_index; i++)
+                {
+                    lines[line_num + 1].Add(space_char);
+                }
+
+                pos_in_line = colon_index;
+            }
+            // If enter is pressed when the line is just a bunch of spaces, delete the spaces in that line.
+            // Used for when the vocab definition indent occurs but the user doesn't use it and goes to the next line; in this case the
+            // indent that isn't wanted should be cleared
+            else if (line_chars.All(c => c == ' '))
+            {
+                // Clear current line
+                lines[line_num] = new();
+                // Add new empty line
+                lines.Insert(line_num + 1, new List<ColorChar>());
+                pos_in_line = 0;
+            }
+            // Normal indent, no special cases
             else
             {
                 lines.Insert(line_num + 1, new List<ColorChar>());
