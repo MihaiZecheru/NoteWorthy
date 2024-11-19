@@ -10,6 +10,8 @@ Then, they can use the Ctrl+UpArrow and Ctrl+DownArrow shortcuts to navigate thr
 This makes finding information easier and faster, and it helps keep the notes organized.
 No scrolling in the editor allows you to see the entire note at once and not have to worry about other content being hidden much further down in the note.
 
+**I recommend using the** `One Half Dark` **theme on wt.exe (windows terminal).**
+
 # Shortcuts
 
 The two most important shortcuts are Ctrl+UpArrow and Ctrl+DownArrow, which are used to navigate through the notes in the current folder.
