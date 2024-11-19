@@ -912,16 +912,14 @@ class Program
             {
                 if (selected_item.IsDir)
                 {
-                    // -4 to account for panel border and padding
-                    return s.Length > 0 && s.Length <= NoteTree.DISPLAY_WIDTH - 4;
+                    return s.Length > 0 && s.Length <= NoteTree.BUFFER_WIDTH;
                 }
                 else
                 {
-                    // -4 to account for panel border and padding
                     // -3 to account for the .nw that will be added if it's not already there
-                    return s.Length > 0 && s.Length <= NoteTree.DISPLAY_WIDTH - 4 - (s.EndsWith(".nw") ? 0 : 3);
+                    return s.Length > 0 && s.Length <= NoteTree.BUFFER_WIDTH - (s.EndsWith(".nw") ? 0 : 3);
                 }
-            }, $"The name must be less than {NoteTree.DISPLAY_WIDTH - 4 + 1} characters, including file extension")
+            }, $"The name must be less than {NoteTree.DISPLAY_WIDTH - 4 + 1} characters, including the '.nw' file extension")
         ).Trim();
 
         if (new_name == null || new_name?.Length == 0)
