@@ -1,4 +1,5 @@
 ﻿using Spectre.Console;
+using System;
 using System.Linq;
 using System.Text;
 
@@ -262,8 +263,22 @@ internal class NoteEditor
 
         if (AtEndOfLine())
         {
-            lines.Insert(line_num + 1, new List<ColorChar>());
-            pos_in_line = 0;
+            // If the current line is indented + dash + space, the new line will be indented with a dash + space too
+            // Ex, if it starts with this: "    - "
+            if (lines[line_num].Count >= 6 && lines[line_num][0].Char == ' ' && lines[line_num][1].Char == ' ' && lines[line_num][2].Char == ' ' && lines[line_num][3].Char == ' ' && lines[line_num][4].Char == '-' && lines[line_num][5].Char == ' ')
+            {
+                ColorChar space_char = new ColorChar((byte)' ', 0);
+                lines.Insert(line_num + 1, new List<ColorChar>()
+                {
+                    space_char, space_char, space_char, space_char, new ColorChar((byte)'-', 0), space_char
+                });
+                pos_in_line = 6;
+            }
+            else
+            {
+                lines.Insert(line_num + 1, new List<ColorChar>());
+                pos_in_line = 0;
+            }
         }
         else
         {
@@ -321,6 +336,7 @@ internal class NoteEditor
                     Console.Clear();
                     Console.WriteLine("App closed because the color setting is invalid. Your note didn't have any unsaved changes, so you didn't lose any work.");
                 }
+
                 Environment.Exit(0);
                 return;
             }
@@ -339,7 +355,21 @@ internal class NoteEditor
         {
             // Just add the character to the end of the line if the cursor is at the end of the line,
             // regardless of the mode (insert or overwrite)
-            lines[line_num].Add(_char);
+            // Before adding the char, check for the dash + space indent thing. If a dash then a space is typed, the dash will automatically be tabbed
+
+            if (lines[line_num].Count == 1 && lines[line_num][0].Char == '-' && c == ' ')
+            {
+                lines[line_num] = new List<ColorChar>()
+                {
+                    _char, _char, _char, _char, new ColorChar((byte)'-', 0), _char
+                };
+                pos_in_line = 5;
+            }
+            else
+            {
+                // Add char normally
+                lines[line_num].Add(_char);
+            }
         }
         else
         {
@@ -416,8 +446,17 @@ internal class NoteEditor
         // Not at beginning of line - just remove the char
         else
         {
-            lines[line_num].RemoveAt(pos_in_line - 1);
-            pos_in_line--;
+            // Check if line is equal to "    - " and the cursor is at the end of the line. If true, delete the whole line
+            if (lines[line_num].Count == 6 && lines[line_num][0].Char == ' ' && lines[line_num][1].Char == ' ' && lines[line_num][2].Char == ' ' && lines[line_num][3].Char == ' ' && lines[line_num][4].Char == '-' && lines[line_num][5].Char == ' ')
+            {
+                lines[line_num] = new();
+                pos_in_line = 0;
+            }
+            else
+            {
+                lines[line_num].RemoveAt(pos_in_line - 1);
+                pos_in_line--;
+            }
         }
 
         unsaved_changes = true;
@@ -675,7 +714,7 @@ internal class NoteEditor
     }
 
     /// <summary>
-    /// Returns true if the cursor is at the end of the current line
+    /// Returns true if the cursor is at the end of the current line (does not necessarily mean the cursor is at the end of the buffer)
     /// </summary>
     private bool AtEndOfLine()
     {
