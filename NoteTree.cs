@@ -227,6 +227,10 @@ internal class NoteTree
         string folder_name = AnsiConsole.Prompt(
             new TextPrompt<string>("Enter the name of the folder:")
                 .Validate(name => !string.IsNullOrWhiteSpace(name) && !name.Contains('/'), "Folder name cannot be empty or contain '/'")
+                .Validate((string s) =>
+                {
+                    return s.Length > 0 && s.Length <= NoteTree.BUFFER_WIDTH;
+                }, $"The dir name must be less than {NoteTree.BUFFER_WIDTH + 1} characters")
         ).Trim();
 
         if (folder_name == ".") return null;
@@ -254,6 +258,11 @@ internal class NoteTree
         string file_name = AnsiConsole.Prompt(
             new TextPrompt<string>("Enter the name of the file:")
                 .Validate(name => !string.IsNullOrWhiteSpace(name) && !name.Contains('/') && !name.Contains('\\'), "Folder name cannot be empty or contain '/' or '\\")
+                .Validate((string s) =>
+                {
+                    // -3 to account for the .nw that will be added if it's not already there
+                    return s.Length > 0 && s.Length <= NoteTree.BUFFER_WIDTH - (s.EndsWith(".nw") ? 0 : 3);
+                }, $"The file name must be less than {NoteTree.BUFFER_WIDTH + 1} characters, including the '.nw' file extension")
                 .Validate(name =>
                 {
                     for (int i = 0; i < treeItemsInDir.Count; i++)
