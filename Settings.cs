@@ -7,7 +7,16 @@ internal static class Settings
 {
     private static string file_path = Path.Combine(Directory.GetCurrentDirectory(), "settings.txt");
     private static ReadOnlyDictionary<string, string> settings = LoadSettings();
-    public static int TabSize = int.Parse(GetSetting("tab_size") ?? "4");
+
+    public static bool InsertMode = GetSetting("write_mode") != "overwrite";
+    public static bool AutoCapitalizeLines = GetSetting("auto_capitalize_lines") == "true";
+    public static bool AutoColorNumbers = GetSetting("auto_color_numbers") == "true";
+    public static bool AutoColorVariables = GetSetting("auto_color_variables") == "true";
+    public static bool AutoSave = GetSetting("auto_save") == "true";
+
+    public static byte PrimaryColor = byte.Parse(GetSetting("primary_color") ?? "12");
+    public static byte SecondaryColor = byte.Parse(GetSetting("secondary_color") ?? "2");
+    public static byte TertiaryColor = byte.Parse(GetSetting("tertiary_color") ?? "9");
 
     /// <summary>
     /// Load settings from the settings file and return them formatted as a dictionary.
@@ -40,7 +49,7 @@ internal static class Settings
         }
     }
 
-    public static string? GetSetting(string key)
+    private static string? GetSetting(string key)
     {
         string? value;
         bool exists = settings.TryGetValue(key, out value);
@@ -55,14 +64,19 @@ internal static class Settings
 
     public static void CreateDefaultSettingsFile()
     {
-        File.WriteAllText(file_path, @"write_mode=insert // options: insert | overwrite - default char insert behaviour
-theme=gray // options: gray | white | black - app color theme
-tab_size=4 // number of spaces per tab (defaults to 4)
+        File.WriteAllText(file_path, @"// Note: all settings are case sensitive. If an invalid value is provided, the default will be used
 
-// color options: https://spectreconsole.net/appendix/colors use the # column to identify.
-primary_color=12 // custom text color for ctrl+b (12 is blue)
-secondary_color=2 // custom text color for ctrl+u (2 is green)
-tertiary_color=9 // custom text color for ctrl+i (9 is red)
+// General settings
+write_mode=insert // options: insert | overwrite - starting character type behaviour - default: insert
+auto_capitalize_lines=false // true | false - true to capitalize the first letter of each line - default: false
+auto_color_numbers=false // true | false - true to automatically color all numbers in the text with the secondary_color - default: false
+auto_color_variables=false // true | false - true to automatically color all variables (single characters like 'p' or 'c' that are not 'a' or 'i') in the text with the secondary_color - default: false
+auto_save=false // true | false - true to automatically save the file after typing - default: false
+
+// color options: https://spectreconsole.net/appendix/colors use the # column to represent the color
+primary_color=12 // custom text color for ctrl+b - default: 12 (blue)
+secondary_color=2 // custom text color for ctrl+u - default: 2 (green)
+tertiary_color=9 // custom text color for ctrl+i - default: 9 (red)
 ");
     }
 
@@ -79,6 +93,5 @@ tertiary_color=9 // custom text color for ctrl+i (9 is red)
     public static void ReloadSettings()
     {
         settings = LoadSettings();
-        TabSize = int.Parse(GetSetting("tab_size") ?? "4");
     }
 }
