@@ -75,4 +75,10 @@ tertiary_color=9 // custom text color for ctrl+i (9 is red)
     {
         return File.Exists(file_path);
     }
+
+    public static void ReloadSettings()
+    {
+        settings = LoadSettings();
+        TabSize = int.Parse(GetSetting("tab_size") ?? "4");
+    }
 }

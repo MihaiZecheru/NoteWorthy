@@ -464,6 +464,9 @@ internal class NoteEditor
         else
         {
             int start_of_word = FindIndexOf_StartOfPreviousWord();
+            // Leave the space at the end of the word
+            if (start_of_word != 0) start_of_word++;
+            // Delete word
             lines[line_num].RemoveRange(start_of_word, pos_in_line - start_of_word);
             pos_in_line = start_of_word;
         }
@@ -1124,7 +1127,7 @@ internal class NoteEditor
         { ConsoleKey.M, "Create new folder" },
         { ConsoleKey.R, "Reload the tree" },
         { ConsoleKey.D, "Delete the selected tree item" },
-        { ConsoleKey.D8, "Open the settings file" },
+        { ConsoleKey.D8, "Open the settings file (+shift to reload it)" },
         { ConsoleKey.D1, "Toggle tree visibility" },
         { ConsoleKey.H, "Toggle this help panel" }
     };
@@ -1167,7 +1170,7 @@ internal class NoteEditor
         { ConsoleKey.N, "Create new note" },
         { ConsoleKey.M, "Create new folder" },
         { ConsoleKey.O, "Open current directory in file explorer" },
-        { ConsoleKey.D8, "Open the settings file" },
+        { ConsoleKey.D8, "Open the settings file (+shift to reload it)" },
         { ConsoleKey.UpArrow, "Preview the previous note" },
         { ConsoleKey.DownArrow, "Preview the next note" },
         { ConsoleKey.B, "Toggle primary color" },

@@ -329,12 +329,24 @@ class Program
                     break;
 
                 // Ctrl+8 - Open the settings file
+                // Ctrl+Shift+8 - Reload the settings file
                 case ConsoleKey.D8:
-                    if (!Settings.SettingsFileExists())
+                    if (keyInfo.Modifiers.HasFlag(ConsoleModifiers.Shift))
                     {
-                        Settings.CreateDefaultSettingsFile();
+                        Settings.ReloadSettings();
+                        noteTree.Set_RequiresUpdate();
+                        noteEditorRequiresUpdate = true;
+                        SetTreeFooterRequiresUpdate();
                     }
-                    Settings.OpenSettingsFile();
+                    else
+                    {
+                        if (!Settings.SettingsFileExists())
+                        {
+                            Settings.CreateDefaultSettingsFile();
+                        }
+                        Settings.OpenSettingsFile();
+                    }
+
                     break;
 
                 // Ctrl+1 - Toggle the noteTree widget
@@ -633,8 +645,25 @@ class Program
                     break;
 
                 // Ctrl+8 - Open the settings file
+                // Ctrl+Shift+8 - Reload the settings file
                 case ConsoleKey.D8:
-                    Process.Start("notepad.exe", "settings.txt");
+                    if (keyInfo.Modifiers.HasFlag(ConsoleModifiers.Shift))
+                    {
+                        Settings.ReloadSettings();
+                        noteTree.Set_RequiresUpdate();
+                        noteEditorRequiresUpdate = true;
+                        SetTreeFooterRequiresUpdate();
+                    }
+                    else
+                    {
+                        if (!Settings.SettingsFileExists())
+                        {
+                            Settings.CreateDefaultSettingsFile();
+                        }
+                        Settings.OpenSettingsFile();
+                    }
+
+                    break;
                     break;
 
                 // Ctrl+DownArrow - Navigate to the next note (downwards)
@@ -857,6 +886,7 @@ class Program
                 }
             }, $"The name must be less than {NoteTree.DISPLAY_WIDTH - 4 + 1} characters, including file extension")
         ).Trim();
+
         if (new_name == null || new_name?.Length == 0)
         {
             return;
@@ -878,7 +908,15 @@ class Program
         // This was required because the GetSelectedTreeItem was returning a deep copy, not a reference
         // Therefore, the changes weren't being reflected in the tree, and it was not possible to get a deep copy to how GetSelectedTreeItem works.
         // Do not try to refact this.
-        noteTree = new NoteTree();
+        if (selected_item == null || !selected_item.IsDir && selected_item.Parent == null)
+        {
+            noteTree = new NoteTree();
+        }
+        else
+        {
+            noteTree = new NoteTree(selected_item.IsDir ? selected_item.FilePath : selected_item.Parent!.FilePath);
+        }
+        
         noteEditor = new NoteEditor(null);
         noteTree.SetVisible();
         Set_NoteEditorRequiresUpdate();
