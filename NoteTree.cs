@@ -49,24 +49,13 @@ internal class NoteTree
     public NoteTree()
     {
         // Load the notes from the notes directory
-        treeItems = LoadTreeItems(Program.NOTES_DIR_PATH, null, null);
-    }
-
-    public NoteTree(string activeDirPath)
-    {
-        if (activeDirPath.EndsWith(".nw"))
-        {
-            throw new Exception("activeDirPath cannot be a file. Must be dir.");
-        }
-
-        // Load the notes from the notes directory and set the active dir to activeDirPath
-        treeItems = LoadTreeItems(Program.NOTES_DIR_PATH, null, activeDirPath);
+        treeItems = LoadTreeItems(Program.NOTES_DIR_PATH, null);
     }
 
     /// <summary>
     /// Get the notes from the notes directory and add them to the NoteTree as TreeItems.
     /// </summary>
-    private List<TreeItem> LoadTreeItems(string directoryPath, TreeItem? parent, string? activeDirPath)
+    private static List<TreeItem> LoadTreeItems(string directoryPath, TreeItem? parent)
     {
         IEnumerable<string> files = Directory.GetFiles(directoryPath).Where((string file) => file.EndsWith(".nw"));
         string[] directories = Directory.GetDirectories(directoryPath);
@@ -74,33 +63,22 @@ internal class NoteTree
         IEnumerable<TreeItem> _files = files.Select((string file_path) =>
         {
             int len = Path.GetFileName(file_path)!.Length;
-            
             if (len > BUFFER_WIDTH)
             {
                 throw new FileLoadException($"File name is too long. Must be less than {BUFFER_WIDTH} characters long. Is {len} long. Path: {file_path}");
             }
-
             return new TreeItem(file_path, parent);
         });
-
         IEnumerable<TreeItem> _directories = directories.Select(directory_path =>
         {
             int len = new DirectoryInfo(directory_path)!.Name.Length;
-
             if (len > BUFFER_WIDTH)
             {
                 throw new FileLoadException($"Directory name is too long. Must be less than {BUFFER_WIDTH} characters long. Is {len} long. Path: {directory_path}");
             }
 
-
             var treeItem = new TreeItem(directory_path, parent);
-            treeItem.SetDirectory(LoadTreeItems(directory_path, treeItem, activeDirPath));
-            
-            if (directoryPath == activeDirPath)
-            {
-                current_parent_treeItem = treeItem;
-            }
-
+            treeItem.SetDirectory(LoadTreeItems(directory_path, treeItem));
             return treeItem;
         });
 
@@ -131,7 +109,7 @@ internal class NoteTree
         ));
 
         return new Panel(names_string)
-            .Header("[yellow] " + (current_parent_treeItem == null ? "Root"  : current_parent_treeItem.Name) + " [/]")
+            .Header("[yellow] " + (current_parent_treeItem == null ? "Root" : current_parent_treeItem.Name) + " [/]")
             .Expand()
             .RoundedBorder();
     }
@@ -151,7 +129,7 @@ internal class NoteTree
     }
 
     /// <summary>
-    /// Navigate to a TreeItem (directory only) in the NoteTree. 
+    /// Navigate to a TreeItem in the NoteTree. 
     /// </summary>
     /// <param name="treeItem">Set to <see langword="null" /> to navigate to the root directory.</param>
     public void NavigateToTreeItemDirectory(TreeItem? treeItem)
@@ -366,7 +344,7 @@ internal class NoteTree
         // Go to the top file item, since dirs are always the top-most items
         // 
         // If the selected file is the last file, select the top file
-        if (index_in_files == - 1 || index_in_files == file_tree_items.Count - 1)
+        if (index_in_files == -1 || index_in_files == file_tree_items.Count - 1)
         {
             selected_item_index = GetParentTreeItemChildren().IndexOf(file_tree_items[0]);
             return true;
