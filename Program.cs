@@ -870,7 +870,7 @@ class Program
                     editorFocused = false;
                     break;
 
-                // Tab - Insert Settings.TabSize amount of spaces
+                // Tab - Insert 4 spaces
                 case ConsoleKey.Tab:
                     noteEditor.InsertTab();
                     Set_NoteEditorRequiresUpdate();
@@ -1113,9 +1113,18 @@ class Program
         editorFocused = false;
     }
 
-    private static string GetMarkup(string color)
+    private static string GetMarkup(string color_string)
     {
-        return Spectre.Console.Color.FromInt32(byte.Parse(Settings.GetSetting(color)!)).ToMarkup();
+        byte color;
+        if (color_string == "primary_color")
+            color = Settings.PrimaryColor;
+        else if (color_string == "secondary_color")
+            color = Settings.SecondaryColor;
+        else if (color_string == "tertiary_color")
+            color = Settings.TertiaryColor;
+        else throw new Exception(color_string + " is not a valid color");
+
+        return Spectre.Console.Color.FromInt32(color).ToMarkup();
     }
 
     private static Panel GenerateTreeFooterPanel()
@@ -1131,7 +1140,7 @@ class Program
         // If the mode is "insert" and the default setting is "insert", use primary.
         // If the mode is "overwrite" and the default setting is "overwrite", use primary.
         // Otherwise, use secondary.
-        string mode_color = insertModeEnabled == (Settings.GetSetting("write_mode") == "insert") ?
+        string mode_color = insertModeEnabled == Settings.InsertMode ?
             GetMarkup("primary_color") :
             GetMarkup("secondary_color");
 
