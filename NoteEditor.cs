@@ -961,23 +961,47 @@ internal class NoteEditor
 
     public void TogglePrimaryColor()
     {
-        primary_color_on = !primary_color_on;
+        if (!primary_color_on && !secondary_color_on && !tertiary_color_on)
+        {
+            primary_color_on = true;
+        }
+        else
+        {
+            primary_color_on = false;
+        }
+
         secondary_color_on = false;
         tertiary_color_on = false;
     }
 
     public void ToggleSecondaryColor()
     {
+        if (!primary_color_on && !secondary_color_on && !tertiary_color_on)
+        {
+            secondary_color_on = true;
+        }
+        else
+        {
+            secondary_color_on = false;
+        }
+
         primary_color_on = false;
-        secondary_color_on = !secondary_color_on;
         tertiary_color_on = false;
     }
 
     public void ToggleTertiaryColor()
     {
+        if (!primary_color_on && !secondary_color_on && !tertiary_color_on)
+        {
+            tertiary_color_on = true;
+        }
+        else
+        {
+            tertiary_color_on = false;
+        }
+
         primary_color_on = false;
         secondary_color_on = false;
-        tertiary_color_on = !tertiary_color_on;
     }
 
     public bool IsPrimaryColorEnabled()
