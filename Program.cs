@@ -498,12 +498,22 @@ class Program
                     break;
 
                 // Ctrl+L - Toggle focus to the tree
+                // Ctrl+Shift+L - Insert dashed line
                 case ConsoleKey.L:
-                    editorFocused = false;
-                    AnsiConsole.Cursor.Hide();
-                    Set_NoteEditorRequiresUpdate();
-                    noteTree.Set_RequiresUpdate();
-                    SetTreeFooterRequiresUpdate();
+                    if (keyInfo.Modifiers.HasFlag(ConsoleModifiers.Shift))
+                    {
+                        noteEditor.InsertDashedLine();
+                        Set_NoteEditorRequiresUpdate();
+                        SetTreeFooterRequiresUpdate();
+                    }
+                    else
+                    {
+                        editorFocused = false;
+                        AnsiConsole.Cursor.Hide();
+                        Set_NoteEditorRequiresUpdate();
+                        noteTree.Set_RequiresUpdate();
+                        SetTreeFooterRequiresUpdate();
+                    }
                     break;
 
                 // Ctrl+S - Save note
@@ -908,15 +918,8 @@ class Program
         // This was required because the GetSelectedTreeItem was returning a deep copy, not a reference
         // Therefore, the changes weren't being reflected in the tree, and it was not possible to get a deep copy to how GetSelectedTreeItem works.
         // Do not try to refact this.
-        if (selected_item == null || !selected_item.IsDir && selected_item.Parent == null)
-        {
-            noteTree = new NoteTree();
-        }
-        else
-        {
-            noteTree = new NoteTree(selected_item.IsDir ? selected_item.FilePath : selected_item.Parent!.FilePath);
-        }
         
+        noteTree = new NoteTree();
         noteEditor = new NoteEditor(null);
         noteTree.SetVisible();
         Set_NoteEditorRequiresUpdate();

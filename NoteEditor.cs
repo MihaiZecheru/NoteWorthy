@@ -131,6 +131,7 @@ internal class NoteEditor
             }
         }
 
+        SaveState();
         FixNoteBuffersIfNecessary();
     }
 
@@ -705,6 +706,11 @@ internal class NoteEditor
         return lines[line_num].Count == BUFFER_WIDTH;
     }
 
+    private bool LineIsEmpty()
+    {
+        return lines[line_num].Count == 0;
+    }
+
     /// <summary>
     /// Returns the number of characters in the current line.
     /// Used for checking if the cursor is at the end of the line or moving the cursor to the end of the line.
@@ -1177,7 +1183,7 @@ internal class NoteEditor
     private static Dictionary<ConsoleKey, string> editor_ctrl_functions = new Dictionary<ConsoleKey, string>()
     {
         { ConsoleKey.Q, "Quit NoteWorthy" },
-        { ConsoleKey.L, "Toggle focus to the tree" },
+        { ConsoleKey.L, "Toggle focus to the tree (+shift for dash-line)" },
         { ConsoleKey.S, "Save note" },
         { ConsoleKey.R, "Reload note" },
         { ConsoleKey.D, "Delete current line" },
@@ -1312,5 +1318,14 @@ internal class NoteEditor
                 return acc + $"[{color}]{ctrlString}{kv.Key}[/] - {kv.Value}\n";
             })
         ).Expand().RoundedBorder().Header("[aqua]" + panelHeader + "[/]").BorderColor(Color.Aqua);
+    }
+
+    public void InsertDashedLine()
+    {
+        if (!LineIsEmpty()) return;
+
+        lines[line_num].AddRange(Enumerable.Repeat(new ColorChar((byte)'-', 0), BUFFER_WIDTH));
+        pos_in_line = BUFFER_WIDTH;
+        unsaved_changes = true;
     }
 }
