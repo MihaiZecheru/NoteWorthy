@@ -12,6 +12,7 @@ internal static class Settings
     public static bool AutoCapitalizeLines = GetSetting("auto_capitalize_lines") == "true";
     public static bool AutoColorNumbers = GetSetting("auto_color_numbers") == "true";
     public static bool AutoColorVariables = GetSetting("auto_color_variables") == "true";
+    public static bool AutoColorVocabDefinitions = GetSetting("auto_color_vocab_definitions") == "true";
     public static bool AutoSave = GetSetting("auto_save") == "true";
 
     public static byte PrimaryColor = byte.Parse(GetSetting("primary_color") ?? "12");
@@ -76,6 +77,8 @@ auto_capitalize_lines=false
 auto_color_numbers=false
 // true | false - true to automatically color all variables (single characters like 'x' or 'y' that are not 'a' or 'i' specifically) in the text with the primary_color - default: false
 auto_color_variables=false
+// true | false - true to automatically color the vocab definitions in the text with the primary_color - default: false
+auto_color_vocab_definitions=false
 // true | false - true to automatically save the file after typing - default: false
 auto_save=false
 
