@@ -598,6 +598,12 @@ internal class NoteEditor
     /// </summary>
     public void DeleteCharWithBackspace()
     {
+        if (SomeCharsAreHighlighted())
+        {
+            DeleteHighlightedChars();
+            return;
+        }
+
         if (AtBeginningOfLine())
         {
             if (OnFirstLine()) return;
@@ -646,6 +652,12 @@ internal class NoteEditor
     /// </summary>
     public void DeleteCharWithDeleteKey()
     {
+        if (SomeCharsAreHighlighted())
+        {
+            DeleteHighlightedChars();
+            return;
+        }
+
         if (AtEndOfLine())
         {
             if (OnLastLine()) return;
@@ -666,6 +678,12 @@ internal class NoteEditor
     /// </summary>
     public void DeleteWordWithBackspace()
     {
+        if (SomeCharsAreHighlighted())
+        {
+            DeleteHighlightedChars();
+            return;
+        }
+
         if (AtBeginningOfLine())
         {
             // If the cursor is at the beginning of the first line,
@@ -698,6 +716,12 @@ internal class NoteEditor
     /// </summary>
     public void DeleteWordWithDeleteKey()
     {
+        if (SomeCharsAreHighlighted())
+        {
+            DeleteHighlightedChars();
+            return;
+        }
+
         if (AtEndOfLine())
         {
             // If the cursor is at the end of the last line,
@@ -1785,6 +1809,30 @@ internal class NoteEditor
         }
 
         pos_in_line = 0;
+    }
+
+    private void DeleteHighlightedChars()
+    {
+        var to_delete = new List<(int line, int col)>();
+
+        for (int i = 0; i < lines.Count; i++)
+        {
+            for (int j = 0; j < lines[i].Count; j++)
+            {
+                if (lines[i][j].IsHighlighted()) to_delete.Add((i, j));
+            }
+        }
+
+        if (to_delete.Count == 0) return;
+
+        for (int i = to_delete.Count - 1; i >= 0; i--)
+        {
+            (int line, int col) = to_delete[i];
+            lines[line].RemoveAt(col);
+        }
+
+        line_num = to_delete[0].line;
+        pos_in_line = to_delete[0].col;
     }
 
     #endregion
