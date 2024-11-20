@@ -192,11 +192,14 @@ class Program
         }
     }
 
+    private static bool last_was_visible = false;
+
     /// <summary>
     /// Rerender the screen if it is necessary
     /// </summary>
     private static void HandleRendering()
     {
+        var treeItemsAndFooterLayout = display_layout.GetLayout("TreeItemsAndFooter");
         var treeItemsLayout = display_layout.GetLayout("TreeItems");
         var treeFooterLayout = display_layout.GetLayout("TreeFooter");
         var noteEditorLayout = display_layout.GetLayout("NoteEditor");
@@ -206,6 +209,45 @@ class Program
         // Note tree
         if (note_tree_requires_update)
         {
+            visible:;
+            if (noteTree.IsVisible() && !last_was_visible)
+            {
+                treeItemsAndFooterLayout.Visible();
+                treeFooterLayout.Visible();
+                treeItemsLayout.Visible();
+                last_was_visible = true;
+
+                noteEditor = new NoteEditor(noteEditor.GetNotePath());
+                editorFocused = false;
+                note_tree_requires_update = true;
+                SetTreeFooterRequiresUpdate();
+                Set_NoteEditorRequiresUpdate();
+            }
+            else if (!noteTree.IsVisible() && last_was_visible)
+            {
+                treeItemsAndFooterLayout.Invisible();
+                treeFooterLayout.Invisible();
+                treeItemsLayout.Invisible();
+                last_was_visible = false;
+
+                noteEditor = new NoteEditor(noteEditor.GetNotePath());
+
+                if (noteEditor.IsTypingDisabled())
+                {
+                    // Re-render
+                    noteTree.ToggleVisibility();
+                    goto visible;
+                }
+                else
+                {
+                    editorFocused = true;
+                }
+
+                note_tree_requires_update = true;
+                SetTreeFooterRequiresUpdate();
+                Set_NoteEditorRequiresUpdate();
+            }
+
             var panel = noteTree.GenerateDisplayPanel();
 
             // The tree must be focused if the editor isn't
@@ -216,17 +258,6 @@ class Program
 
             // Will only rewrite if there's been a change to them
             treeItemsLayout.Update(panel);
-
-            if (noteTree.IsVisible() )
-            {
-                treeFooterLayout.Visible();
-                treeItemsLayout.Visible();
-            }
-            else
-            {
-                treeFooterLayout.Invisible();
-                treeItemsLayout.Invisible();
-            }
         }
 
         // Note editor
@@ -310,7 +341,7 @@ class Program
                         noteTree.SetVisible();
                         Set_NoteEditorRequiresUpdate();
                         // Move focus to the tree
-                        editorFocused = false;
+                        if (noteTree.IsVisible()) editorFocused = false;
                         noteTree.Set_RequiresUpdate();
                         SetTreeFooterRequiresUpdate();
                     }
@@ -366,6 +397,7 @@ class Program
                     if (noteEditor.GetNotePath() == null) break;
                     noteTree.ToggleVisibility();
                     SetTreeFooterRequiresUpdate();
+                    Set_NoteEditorRequiresUpdate();
                     break;
 
                 // Ctrl+H - Toggle the help panel
@@ -459,7 +491,7 @@ class Program
 
                         if (noteEditor.IsTypingDisabled())
                         {
-                            editorFocused = false;
+                            if (noteTree.IsVisible()) editorFocused = false;
                             AnsiConsole.Cursor.Hide();
                         }
 
@@ -574,7 +606,7 @@ class Program
                     noteEditor = new NoteEditor(null);
                     Set_NoteEditorRequiresUpdate();
                     // Move focus to the tree
-                    editorFocused = false;
+                    if (noteTree.IsVisible()) editorFocused = false;
                     noteTree.Set_RequiresUpdate();
                     noteTree.SetVisible();
                     SetTreeFooterRequiresUpdate();
@@ -837,7 +869,7 @@ class Program
                     }
                     else
                     {
-                        editorFocused = false;
+                        if (noteTree.IsVisible()) editorFocused = false;
                         AnsiConsole.Cursor.Hide();
                     }
 
@@ -974,7 +1006,7 @@ class Program
                     noteTree.Set_RequiresUpdate();
                     Set_NoteEditorRequiresUpdate();
                     // focus the tree in case user wants to keep renaming stuff
-                    editorFocused = false;
+                    if (noteTree.IsVisible()) editorFocused = false;
                     break;
 
                 // Tab - Insert 4 spaces
@@ -1066,7 +1098,7 @@ class Program
         noteEditor = new NoteEditor(null);
         noteTree.SetVisible();
         Set_NoteEditorRequiresUpdate();
-        editorFocused = false; // Focus the tree in case user wants to keep renaming stuff
+        if (noteTree.IsVisible()) editorFocused = false; // Focus the tree in case user wants to keep renaming stuff
         AnsiConsole.Cursor.Hide();
     }
 
@@ -1138,7 +1170,7 @@ class Program
         if (folder_path == null) return;
 
         // Focus the tree in case user wants to navigate the newly-made folder
-        editorFocused = false;
+        if (noteTree.IsVisible()) editorFocused = false;
         noteTree.NavigateToTreeItemInCurrentDirByPath(folder_path);
         if (!cursor_visible) AnsiConsole.Cursor.Hide();
     }
@@ -1169,7 +1201,7 @@ class Program
         if (selected_tree_item.FilePath == noteEditor.GetNotePath())
         {
             noteEditor = new NoteEditor(null);
-            editorFocused = false;
+            if (noteTree.IsVisible()) editorFocused = false;
         }
 
         // Parent is starting dir so remake editor normally
@@ -1202,7 +1234,7 @@ class Program
         Console.ReadKey(true);
         noteTree.Set_RequiresUpdate();
         Set_NoteEditorRequiresUpdate();
-        editorFocused = false;
+        if (noteTree.IsVisible()) editorFocused = false;
     }
 
     private static void Set_NoteEditorRequiresUpdate()
@@ -1217,7 +1249,7 @@ class Program
 
     public static void UnfocusEditor()
     {
-        editorFocused = false;
+        if (noteTree.IsVisible()) editorFocused = false;
     }
 
     private static string GetMarkup(string color_string)
@@ -1349,7 +1381,7 @@ class Program
         }
 
         noteEditor = new NoteEditor(noteTree.GetSelectedTreeItem()!.FilePath);
-        editorFocused = false;
+        if (noteTree.IsVisible()) editorFocused = false;
         Set_NoteEditorRequiresUpdate();
         noteTree.Set_RequiresUpdate();
         SetTreeFooterRequiresUpdate();
@@ -1366,7 +1398,14 @@ class Program
         }
 
         noteEditor = new NoteEditor(noteTree.GetSelectedTreeItem()!.FilePath);
-        editorFocused = false;
+
+        if (noteEditor.IsTypingDisabled() && !noteTree.IsVisible())
+        {
+            // Re-render
+            noteTree.ToggleVisibility();
+        }
+        
+        if (noteTree.IsVisible()) editorFocused = false;
         Set_NoteEditorRequiresUpdate();
         noteTree.Set_RequiresUpdate();
         SetTreeFooterRequiresUpdate();
