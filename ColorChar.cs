@@ -59,7 +59,7 @@ internal class ColorChar
     /// Get the char and color bytes, formatted in a tuple
     /// </summary>
     /// <returns>Tuple of char byte then color_byte</returns>
-    public (byte, byte) GetBytes()
+    public (byte char_byte, byte color_byte) GetBytes()
     {
         return ((byte)Char, color_byte);
     }
