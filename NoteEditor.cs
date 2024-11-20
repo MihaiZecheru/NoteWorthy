@@ -284,22 +284,25 @@ internal class NoteEditor
                 }
             }
             // If the current line is a vocab definition, the new line will be indented with a space
-            // Vocab definitions are detected when there is a colon followed by a space in the line prior to the halfway-point of the line and
+            // Vocab definitions are detected when there is a colon followed by a space in the line
             // the line is also within 9 chars of being full
             // The : cannot be the first character
-            else if (line_chars.Count >= BUFFER_WIDTH - 9 && line_chars.IndexOf(':') != 0 && line_chars.Contains(':') && line_chars.IndexOf(':') <= line_chars.Count / 2 && lines[line_num][line_chars.IndexOf(':') + 1] == ' ')
+            else if (line_chars.Count >= BUFFER_WIDTH - 9 && line_chars.IndexOf(':') != 0 && line_chars.Contains(':') && lines[line_num][line_chars.IndexOf(':') + 1] == ' ')
             {
                 ColorChar space_char = new((byte)' ', 0);
 
                 int colon_index = line_chars.IndexOf(':') + 2; // +2 to account for the colon itself and the space that follows it
                 lines.Insert(line_num + 1, new());
 
-                for (int i = 0; i < colon_index; i++)
+                // If the colon is too far towards the end of the buffer, just do a small indent to continue the def
+                int spaces_to_add = line_chars.IndexOf(':') < BUFFER_WIDTH / 3 ? colon_index : 4;
+
+                for (int i = 0; i < spaces_to_add; i++)
                 {
                     lines[line_num + 1].Add(space_char);
                 }
 
-                pos_in_line = colon_index;
+                pos_in_line = spaces_to_add;
             }
             // If enter is pressed when the line is just a bunch of spaces, delete the spaces in that line.
             // Used for when the vocab definition indent occurs but the user doesn't use it and goes to the next line; in this case the
@@ -311,6 +314,22 @@ internal class NoteEditor
                 // Add new empty line
                 lines.Insert(line_num + 1, new());
                 pos_in_line = 0;
+            }
+            // If enter is pressed when the line starts with more than 4 spaces (a tab) but isn't JUST the spaces, then tab the new line enough
+            // to match up. Note: by this point, the entire not isn't spaces because of the previous condition
+            else if (line_chars.Count > 4 && line_chars[0] == ' ' && line_chars[1] == ' ' && line_chars[2] == ' ' && line_chars[3] == ' ')
+            {
+                ColorChar space_char = new((byte)' ', 0);
+                int spaces_to_add = GetLeadingSpacesCount(new string(lines[line_num].Select(c => c.Char).ToArray()));
+
+                lines.Insert(line_num + 1, new());
+
+                for (int i = 0; i < spaces_to_add; i++)
+                {
+                    lines[line_num + 1].Add(space_char);
+                }
+
+                pos_in_line = spaces_to_add;
             }
             // Normal indent, no special cases
             else
@@ -338,6 +357,21 @@ internal class NoteEditor
 
         line_num++;
         Set_unsaved_changes();
+    }
+
+    /// <summary>
+    /// Get the amount of leading spaces in a string
+    /// Ex: "    - " will return 4
+    /// </summary>
+    private int GetLeadingSpacesCount(string line)
+    {
+        int count = 0;
+        foreach (char c in line)
+        {
+            if (c == ' ') count++;
+            else break;
+        }
+        return count;
     }
 
     /// <summary>
@@ -409,8 +443,7 @@ internal class NoteEditor
             }
             // If AutoColorVariables is on and the char is a space, and two chars before is a space, then make one char before have the PrimaryColor as specified in the settings file
             // ex: " x " the x becomes colored
-            
-            else if (Settings.AutoColorVariables && lines[line_num].Count >= 1 && (c == ' ' || char.IsSymbol(c)) && lines[line_num][pos_in_line - 1].Char != ' ' && (pos_in_line - 1 == 0 || lines[line_num][pos_in_line - 2] == ' ' || char.IsSymbol(lines[line_num][pos_in_line - 2].Char)) && char.IsAsciiLetter(lines[line_num][pos_in_line - 1].Char))
+            else if (Settings.AutoColorVariables && lines[line_num].Count >= 1 && pos_in_line >= 1 && (c == ' ' || char.IsSymbol(c)) && lines[line_num][pos_in_line - 1].Char != ' ' && (pos_in_line - 1 == 0 || lines[line_num][pos_in_line - 2] == ' ' || char.IsSymbol(lines[line_num][pos_in_line - 2].Char)) && char.IsAsciiLetter(lines[line_num][pos_in_line - 1].Char))
             {
                 // The space that was typed
                 _char = new ColorChar((byte)c, 0);
@@ -467,6 +500,25 @@ internal class NoteEditor
                 // Overwrite the char at the current positon
                 lines[line_num][pos_in_line] = _char;
             }
+        }
+
+
+        // If the char to insert is a space, check for a possible vocab definition (FOR Settings.AutoColorVocabDefinitions)
+        // Vocab definitions are detected when there is a colon followed by a space in the line prior to the halfway-point of the line 
+        // The : cannot be the first character
+        List<char> line_chars = lines[line_num].Select(l => l.Char).ToList();
+        if (Settings.AutoColorVocabDefinitions && c == ' ' && line_chars.Count >= 3 && line_chars.Contains(':') && line_chars.IndexOf(':') != 0 && line_chars.IndexOf(':') <= BUFFER_WIDTH / 3)
+        {
+            int tmp = pos_in_line;
+            int colon_index = line_chars.IndexOf(':');
+
+            // Color the colon
+            for (int i = 0; i < colon_index; i++)
+            {
+                lines[line_num][i] = new ColorChar((byte)lines[line_num][i].Char, Settings.PrimaryColor);
+            }
+
+            pos_in_line = tmp;
         }
 
         Set_unsaved_changes();
@@ -563,7 +615,7 @@ internal class NoteEditor
                 pos_in_line = 0;
             }
             // Check if the cursor is at the end of the line and the previous four chars make a tab. If true, delete the tab
-            else if (lines[line_num].Count >= 4 && lines[line_num][pos_in_line - 1] == ' ' && lines[line_num][pos_in_line - 2] == ' ' && lines[line_num][pos_in_line - 3] == ' ' && lines[line_num][pos_in_line - 4] == ' ')
+            else if (lines[line_num].Count >= 4 && pos_in_line >= 4 && lines[line_num][pos_in_line - 1] == ' ' && lines[line_num][pos_in_line - 2] == ' ' && lines[line_num][pos_in_line - 3] == ' ' && lines[line_num][pos_in_line - 4] == ' ')
             {
                 lines[line_num].RemoveRange(pos_in_line - 4, 4);
                 pos_in_line -= 4;
