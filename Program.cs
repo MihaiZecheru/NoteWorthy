@@ -723,7 +723,23 @@ class Program
                 case ConsoleKey.B:
                     if (keyInfo.Modifiers.HasFlag(ConsoleModifiers.Shift))
                     {
-                        noteEditor.SetPrimaryColorForOneChar();
+                        if (noteEditor.SomeCharsAreHighlighted())
+                        {
+                            if (noteEditor.SelectionIsColor(Settings.PrimaryColor))
+                            {
+                                noteEditor.RemoveColorFromHighlightedChars();
+                            }
+                            else
+                            {
+                                noteEditor.ColorHighlightedChars(Settings.PrimaryColor);
+                            }
+
+                            Set_NoteEditorRequiresUpdate();
+                        }
+                        else
+                        {
+                            noteEditor.SetPrimaryColorForOneChar();
+                        }
                     }
                     else
                     {
@@ -738,7 +754,15 @@ class Program
                 case ConsoleKey.U:
                     if (keyInfo.Modifiers.HasFlag(ConsoleModifiers.Shift))
                     {
-                        noteEditor.SetSecondaryColorForOneChar();
+                        if (noteEditor.SomeCharsAreHighlighted())
+                        {
+                            noteEditor.ColorHighlightedChars(Settings.SecondaryColor);
+                            Set_NoteEditorRequiresUpdate();
+                        }
+                        else
+                        {
+                            noteEditor.SetSecondaryColorForOneChar();
+                        }
                     }
                     else
                     {
@@ -753,7 +777,15 @@ class Program
                 case ConsoleKey.I:
                     if (keyInfo.Modifiers.HasFlag(ConsoleModifiers.Shift))
                     {
-                        noteEditor.SetTertiaryColorForOneChar();
+                        if (noteEditor.SomeCharsAreHighlighted())
+                        {
+                            noteEditor.ColorHighlightedChars(Settings.TertiaryColor);
+                            Set_NoteEditorRequiresUpdate();
+                        }
+                        else
+                        {
+                            noteEditor.SetTertiaryColorForOneChar();
+                        }
                     }
                     else
                     {

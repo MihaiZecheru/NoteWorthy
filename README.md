@@ -100,3 +100,4 @@ AutoColorVocabDefinitions will only activate if the text prior to the colon is w
 `Do not use Ctrl+V` to paste! This is handled by the terminal, not by NoteWorthy. Ctrl+V formatting might mess up as a result.
 	- `Use Alt+V instead!`
 If you have some text selected in the editor and want to clear the selection (not delete, just unselect), press the escape key.
+If you want to add color with Ctrl+(B|U|I) to your selected text, you have to do Ctrl+Shift+(B|U|I) instead. Ex: Ctrl+Shift+B will toggle the primary color in the selected text

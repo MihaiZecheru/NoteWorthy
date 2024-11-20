@@ -1030,9 +1030,9 @@ internal class NoteEditor
         {
             foreach (ColorChar c in this.lines[i])
             {
-                (byte _char, byte _color) = c.GetBytes();
-                bytes.Add(_char);
-                bytes.Add(_color);
+                (byte char_byte, byte color_byte) = c.GetBytes();
+                bytes.Add(char_byte);
+                bytes.Add(color_byte);
             }
 
             if (i != lines.Count - 1)
@@ -1631,7 +1631,7 @@ internal class NoteEditor
                 string color = kv.Key == lastKeyPressInfo.Key || kv.Key == ConsoleKey.H ? "aqua" : "yellow";
                 return acc + $"[{color}]{ctrlString}{kv.Key}[/] - {kv.Value}\n";
             })
-        ).Expand().RoundedBorder().Header("[aqua]" + panelHeader + "[/]").BorderColor(Color.Aqua);
+        ).Expand().RoundedBorder().Header("[aqua]" + panelHeader + "[/]").BorderColor(Spectre.Console.Color.Aqua);
     }
 
     public void InsertDashedLine()
@@ -1833,6 +1833,78 @@ internal class NoteEditor
 
         line_num = to_delete[0].line;
         pos_in_line = to_delete[0].col;
+    }
+
+    /// <summary>
+    /// Change the color of every highlighted character to the given <paramref name="color"/>
+    /// </summary>
+    /// <param name="color">Color value from either Settings.PrimaryColor, Settings.SecondaryColor, or Settings.TertiaryColor</param>
+    public void ColorHighlightedChars(byte color)
+    {
+        (int y, int x) last_highlighted_char = (0, 0);
+        for (int i = 0; i < lines.Count; i++)
+        {
+            for (int j = 0; j < lines[i].Count; j++)
+            {
+                // Sets the char to the given `color` and un-highlights it
+                if (lines[i][j].IsHighlighted())
+                {
+                    lines[i][j] = new ColorChar((byte)lines[i][j].Char, color, is_highlighted: false);
+                    last_highlighted_char = (i, j);
+                }
+            }
+        }
+
+        // Go to end of what was previously selected
+        line_num = last_highlighted_char.y;
+        pos_in_line = last_highlighted_char.x + 1;
+
+        Set_unsaved_changes();
+    }
+
+    /// <summary>
+    /// Make every highlighted char default color. Used when the selection is all one color and the user presses Ctrl+Shift+(B|U|I)
+    /// </summary>
+    public void RemoveColorFromHighlightedChars()
+    {
+        (int y, int x) last_highlighted_char = (0, 0);
+        for (int i = 0; i < lines.Count; i++)
+        {
+            for (int j = 0; j < lines[i].Count; j++)
+            {
+                // Sets the char back to the default color and un-highlights it
+                if (lines[i][j].IsHighlighted())
+                {
+                    lines[i][j] = new ColorChar((byte)lines[i][j].Char, 0, is_highlighted: false);
+                    last_highlighted_char = (i, j);
+                }
+            }
+        }
+
+        // Go to end of what was previously selected
+        line_num = last_highlighted_char.y;
+        pos_in_line = last_highlighted_char.x + 1;
+
+        Set_unsaved_changes();
+    }
+
+    /// <summary>
+    /// Returns true if every selected character is painted with the given <paramref name="color"/>. Used for checking if Ctrl+Shift+(B|U|I) should highlight or un-highlight the chars
+    /// </summary>
+    /// <param name="color">Color value from either Settings.PrimaryColor, Settings.SecondaryColor, or Settings.TertiaryColor</param>
+    public bool SelectionIsColor(byte color)
+    {
+        for (int i = 0; i < lines.Count; i++)
+        {
+            for (int j = 0; j < lines[i].Count; j++)
+            {
+                if (!lines[i][j].IsHighlighted()) continue;
+
+                if (lines[i][j].GetBytes().color_byte != color) return false;
+            }
+        }
+
+        return true;
     }
 
     #endregion
