@@ -1402,7 +1402,7 @@ internal class NoteEditor
         { ConsoleKey.Y, "Redo" },
         { ConsoleKey.End, "Move to end of note" },
         { ConsoleKey.Home, "Move to start of note" },
-        { ConsoleKey.LeftArrow, "Move to previous word (+shift to select)" },
+        { ConsoleKey.LeftArrow, "Move to prev word (+shift to select)" },
         { ConsoleKey.RightArrow, "Move to next word (+shift to select)" },
         { ConsoleKey.C, "Copy selected text" },
         { ConsoleKey.A, "Select all text" },
@@ -1674,6 +1674,26 @@ internal class NoteEditor
             lines[line_num][pos_in_line].ToggleHighlighting();
             pos_in_line++;
         }
+    }
+
+    public void HighlightToEndOfLine()
+    {
+        for (int i = pos_in_line; i < lines[line_num].Count; i++)
+        {
+            lines[line_num][i].ToggleHighlighting();
+        }
+
+        pos_in_line = lines[line_num].Count;
+    }
+
+    public void HighlightToStartOfLine()
+    {
+        for (int i = 0; i < pos_in_line; i++)
+        {
+            lines[line_num][i].ToggleHighlighting();
+        }
+
+        pos_in_line = 0;
     }
 
     #endregion

@@ -879,15 +879,33 @@ class Program
                     break;
 
                 // End - Navigate to end of line
+                // Shift+End - Highlight to end of line
                 case ConsoleKey.End:
-                    noteEditor.MoveCursorToEndOfLine();
+                    if (keyInfo.Modifiers.HasFlag(ConsoleModifiers.Shift))
+                    {
+                        noteEditor.HighlightToEndOfLine();
+                    }
+                    else
+                    {
+                        noteEditor.MoveCursorToEndOfLine();
+                    }
+
                     Set_NoteEditorRequiresUpdate();
                     SetTreeFooterRequiresUpdate();
                     break;
 
                 // Home - Navigate to start of line
+                // Shift+Home - Highlight to start of line
                 case ConsoleKey.Home:
-                    noteEditor.MoveCursorToStartOfLine();
+                    if (keyInfo.Modifiers.HasFlag(ConsoleModifiers.Shift))
+                    {
+                        noteEditor.HighlightToStartOfLine();
+                    }
+                    else
+                    {
+                        noteEditor.MoveCursorToStartOfLine();
+                    }
+
                     Set_NoteEditorRequiresUpdate();
                     SetTreeFooterRequiresUpdate();
                     break;
