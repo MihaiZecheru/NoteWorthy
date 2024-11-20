@@ -264,12 +264,24 @@ internal class NoteEditor
             // Ex, if it starts with this: "    - "
             if (lines[line_num].Count >= 6 && lines[line_num][0] == ' ' && lines[line_num][1] == ' ' && lines[line_num][2] == ' ' && lines[line_num][3] == ' ' && lines[line_num][4] == '-' && lines[line_num][5] == ' ')
             {
-                ColorChar space_char = new ColorChar((byte)' ', 0);
-                lines.Insert(line_num + 1, new List<ColorChar>()
+                // If enter is pressed when the line is just the dash + space indent ("    - "), clear that dash + space indent and make a new line
+                if (lines[line_num].Count == 6)
                 {
-                    space_char, space_char, space_char, space_char, new ColorChar((byte)'-', 0), space_char
-                });
-                pos_in_line = 6;
+                    // Clear current line
+                    lines[line_num] = new();
+                    // Add new empty line
+                    lines.Insert(line_num + 1, new());
+                    pos_in_line = 0;
+                }
+                else
+                {
+                    ColorChar space_char = new ColorChar((byte)' ', 0);
+                    lines.Insert(line_num + 1, new List<ColorChar>()
+                    {
+                        space_char, space_char, space_char, space_char, new ColorChar((byte)'-', 0), space_char
+                    });
+                    pos_in_line = 6;
+                }
             }
             // If the current line is a vocab definition, the new line will be indented with a space
             // Vocab definitions are detected when there is a colon followed by a space in the line prior to the halfway-point of the line and
@@ -278,7 +290,7 @@ internal class NoteEditor
             else if (line_chars.Count >= BUFFER_WIDTH - 9 && line_chars.IndexOf(':') != 0 && line_chars.Contains(':') && line_chars.IndexOf(':') <= line_chars.Count / 2 && lines[line_num][line_chars.IndexOf(':') + 1] == ' ')
             {
                 ColorChar space_char = new((byte)' ', 0);
-                
+
                 int colon_index = line_chars.IndexOf(':') + 2; // +2 to account for the colon itself and the space that follows it
                 lines.Insert(line_num + 1, new());
 
@@ -297,13 +309,13 @@ internal class NoteEditor
                 // Clear current line
                 lines[line_num] = new();
                 // Add new empty line
-                lines.Insert(line_num + 1, new List<ColorChar>());
+                lines.Insert(line_num + 1, new());
                 pos_in_line = 0;
             }
             // Normal indent, no special cases
             else
             {
-                lines.Insert(line_num + 1, new List<ColorChar>());
+                lines.Insert(line_num + 1, new());
                 pos_in_line = 0;
             }
         }
