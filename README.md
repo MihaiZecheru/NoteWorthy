@@ -57,13 +57,15 @@ Ctrl+D - Delete current line
 Ctrl+W - Close the editor
 Ctrl+Z - Undo
 Ctrl+Y - Redo
-Ctrl+End - Move cursor to the end of the note
-Ctrl+Home - Move cursor to the beginning of the note
-Ctrl+LeftArrow - Move to previous word
-Ctrl+RightArrow - Move to next word
+Ctrl+End - Move cursor to the end of note
+Ctrl+Home - Move cursor to start of note
+Ctrl+LeftArrow - Move to previous word (+shift to select)
+Ctrl+RightArrow - Move to next word (+shift to select)
+Ctrl+C - Copy selected text
+Ctrl+A - Select the entire note
 Ctrl+K - Toggle insert mode
 Ctrl+Backspace - Delete word
-Ctrl+Delete - Delete word (to the right)
+Ctrl+Delete - Delete word (to the right of cursor)
 Ctrl+N - Create new note
 Ctrl+M - Create new folder
 Ctrl+O - Open current directory in file explorer
@@ -79,10 +81,10 @@ Ctrl+H - Toggle this help panel
 
 Escape - Unfocus editor / focus tree
 Enter - Insert new line
-UpArrow - Move cursor up
-DownArrow - Move cursor down (alias: shift+enter)
-LeftArrow - Move cursor left
-RightArrow - Move cursor right
+UpArrow - Move cursor up (+shift to select)
+DownArrow - Move cursor down (alias: shift+enter) (+shift to select)
+LeftArrow - Move cursor left (+shift to move line)
+RightArrow - Move cursor right (+shift to move line)
 End - Move cursor to the end of the line
 Home - Move cursor to the beginning of the line
 Insert - Toggle insert mode

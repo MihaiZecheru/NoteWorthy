@@ -46,7 +46,7 @@ class Program
     public static void Main()
     {
         // Setup
-        Make_CtrlC_CopySelectedTreeItem();
+        Enable_CtrlC_Shortcut();
         Allow_CtrlS_Shortcut();
         SetBlockCursor();
         InitializeNotesDirectory();
@@ -63,25 +63,36 @@ class Program
         }
     }
 
-    [DllImport("user32.dll")]
-    static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
-    private static void Make_CtrlC_CopySelectedTreeItem()
+    private static void Enable_CtrlC_Shortcut()
     {
         Console.CancelKeyPress += (sender, e) =>
         {
             e.Cancel = true;
 
-            // If the note tree is focused, ctrl+c will copy the selected file            
-            if (!editorFocused)
+            // If the editor is focused, ctrl+c will copy highlighted text to clipboard or the whole note if no highlighted text
+            if (editorFocused)
+            {
+                if (noteEditor.SomeCharsAreHighlighted())
+                {
+                    noteEditor.CopyHighlightedText();
+                    Set_NoteEditorRequiresUpdate();
+                }
+            }
+            // If the note tree is focused, ctrl+c will create a copy of the selected file            
+            else
             {
                 bool success = noteTree.CopySelectedTreeItem();
                 if (!success) return;
 
-                // Send Ctrl+R to refresh the tree in the main thread
-                keybd_event(0x11, 0, 0x0000, UIntPtr.Zero);
-                keybd_event(0x52, 0, 0x0000, UIntPtr.Zero);
-                keybd_event(0x52, 0, 0x0002, UIntPtr.Zero);
-                keybd_event(0x11, 0, 0x0002, UIntPtr.Zero);
+                TreeItem selected_tree_item = noteTree.GetSelectedTreeItem()!;
+                if (selected_tree_item.Parent == null)
+                {
+                    noteTree = new NoteTree();
+                }
+                else
+                {
+                    noteTree = new NoteTree(selected_tree_item.Parent.FilePath);
+                }
             }
         };
     }
@@ -591,17 +602,41 @@ class Program
                     break;
 
                 // Ctrl+RightArrow - Navigate one word to the right
+                // Ctrl+Shift+RightArrow - Highlight one word to the right
                 case ConsoleKey.RightArrow:
-                    noteEditor.NavigateToNextWord();
+                    if (keyInfo.Modifiers.HasFlag(ConsoleModifiers.Shift))
+                    {
+                        noteEditor.HighlightNextWord();
+                    }
+                    else
+                    {
+                        noteEditor.NavigateToNextWord();
+                    }
+
                     Set_NoteEditorRequiresUpdate();
                     SetTreeFooterRequiresUpdate();
                     break;
 
                 // Ctrl+LeftArrow - Navigate one word to the left
+                // Ctrl+Shift+LeftArrow - Highlight one word to the left
                 case ConsoleKey.LeftArrow:
-                    noteEditor.NavigateToPreviousWord();
+                    if (keyInfo.Modifiers.HasFlag(ConsoleModifiers.Shift))
+                    {
+                        noteEditor.HighlightPreviousWord();
+                    }
+                    else
+                    {
+                        noteEditor.NavigateToPreviousWord();
+                    }
+
                     Set_NoteEditorRequiresUpdate();
                     SetTreeFooterRequiresUpdate();
+                    break;
+
+                // Ctrl+A - Select all
+                case ConsoleKey.A:
+                    noteEditor.HighlightWholeNote();
+                    Set_NoteEditorRequiresUpdate();
                     break;
 
                 // Ctrl+K - Toggle insert mode
@@ -755,9 +790,18 @@ class Program
             switch (keyInfo.Key)
             {
                 // Escape - Unfocus the editor, therefore focusing the tree
+                // If text is highlighted when escape is pressed, escape will unhighlight the text
                 case ConsoleKey.Escape:
-                    editorFocused = false;
-                    AnsiConsole.Cursor.Hide();
+                    if (noteEditor.SomeCharsAreHighlighted())
+                    {
+                        noteEditor.UnhighlightAllChars();
+                    }
+                    else
+                    {
+                        editorFocused = false;
+                        AnsiConsole.Cursor.Hide();
+                    }
+
                     Set_NoteEditorRequiresUpdate();
                     noteTree.Set_RequiresUpdate();
                     SetTreeFooterRequiresUpdate();
@@ -803,15 +847,33 @@ class Program
                     break;
 
                 // LeftArrow - Navigate the cursor left in the editor
+                // Shift+LeftArrow - Highlight one char to the left in the editor
                 case ConsoleKey.LeftArrow:
-                    noteEditor.MoveCursorLeft();
+                    if (keyInfo.Modifiers.HasFlag(ConsoleModifiers.Shift))
+                    {
+                        noteEditor.HighlightPreviousChar();
+                    }
+                    else
+                    {
+                        noteEditor.MoveCursorLeft();
+                    }
+
                     Set_NoteEditorRequiresUpdate();
                     SetTreeFooterRequiresUpdate();
                     break;
 
                 // RightArrow - Navigate the cursor right in the editor
+                // Shift+RightArrow - Highlight on char to the right in the editor
                 case ConsoleKey.RightArrow:
-                    noteEditor.MoveCursorRight();
+                    if (keyInfo.Modifiers.HasFlag(ConsoleModifiers.Shift))
+                    {
+                        noteEditor.HighlightNextChar();
+                    }
+                    else
+                    {
+                        noteEditor.MoveCursorRight();
+                    }
+
                     Set_NoteEditorRequiresUpdate();
                     SetTreeFooterRequiresUpdate();
                     break;
@@ -1132,7 +1194,7 @@ class Program
             GetMarkup("primary_color") :
             GetMarkup("secondary_color");
 
-        StringBuilder str = new();
+        StringBuilder str = new(capacity: 200);
 
         // Write mode & colors
         if (insertModeEnabled)

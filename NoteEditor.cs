@@ -1,5 +1,6 @@
 ﻿using Spectre.Console;
 using System.Text;
+using TextCopy;
 
 namespace NoteWorthy;
 internal class NoteEditor
@@ -170,6 +171,7 @@ internal class NoteEditor
 
         // Deep copy the note to save its state.
         List<List<ColorChar>> noteCopy = lines.Select(line => new List<ColorChar>(line)).ToList();
+
         history.Push(
             (note_content: noteCopy, (cursor_line_num: line_num, cursor_pos_in_line: pos_in_line))
         );
@@ -463,10 +465,12 @@ internal class NoteEditor
 
     /// <summary>
     /// Returns true if an auto save should occur, which should happen when 1500ms have passed since the last char has been typed.
+    /// If <see cref="auto_save_give_extra_time"/> is <see langword="true"/>, then the user is given 7500ms before the auto save occurs.
     /// </summary>
     public bool CheckIfAutoSaveRequired()
     {
-        bool auto_save = Settings.AutoSave && ms_since_last_change != 0 && DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - ms_since_last_change > 1500;
+        int interval = auto_save_give_extra_time ? 7500 : 1500;
+        bool auto_save = Settings.AutoSave && ms_since_last_change != 0 && DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - ms_since_last_change > interval;
         
         if (auto_save)
         {
@@ -641,14 +645,16 @@ internal class NoteEditor
         Set_unsaved_changes();
     }
 
-    private void Set_unsaved_changes()
+    private bool auto_save_give_extra_time = false;
+    private void Set_unsaved_changes(bool give_extra_time = false)
     {
         if (Settings.AutoSave)
         {
             ms_since_last_change = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            auto_save_give_extra_time = give_extra_time;
         }
 
-        Set_unsaved_changes();
+        unsaved_changes = true;
     }
 
     /// <summary>
@@ -785,7 +791,7 @@ internal class NoteEditor
         lines = lastState.note_content;
         line_num = lastState.Item2.cursor_line_num;
         pos_in_line = lastState.Item2.cursor_pos_in_line;
-        Set_unsaved_changes();
+        Set_unsaved_changes(give_extra_time: true);
     }
 
     public void Redo()
@@ -804,7 +810,7 @@ internal class NoteEditor
         lines = lastState.note_content;
         line_num = lastState.Item2.cursor_line_num;
         pos_in_line = lastState.Item2.cursor_pos_in_line;
-        Set_unsaved_changes();
+        Set_unsaved_changes(give_extra_time: true);
     }
 
     /// <summary>
@@ -1080,7 +1086,7 @@ internal class NoteEditor
 
     private Markup GetDisplayMarkup()
     {
-        StringBuilder s = new();
+        StringBuilder s = new(capacity: BUFFER_HEIGHT * BUFFER_WIDTH);
         for (int i = 0; i < this.lines.Count; i++)
         {
             string line_number = (i + 1).ToString("D2");
@@ -1091,17 +1097,23 @@ internal class NoteEditor
             // this.lines[i] is the line
             for (int j = 0; j < this.lines[i].Count; j++)
             {
-                Color? color = this.lines[i][j].Color;
-                string _char = HandleSquareBrackets(this.lines[i][j].Char);
+                ColorChar color_char = this.lines[i][j];
+                string _char = HandleSquareBrackets(color_char.Char);
 
-                // this.lines[i][j] is the char
-                if (this.lines[i][j].Color == null)
+                if (color_char.IsHighlighted())
+                {
+                    if (color_char.Color == null)
+                        s.Append($"[black on yellow]{_char}[/]");
+                    else
+                        s.Append($"[{color_char.Color.Value} on yellow]{_char}[/]");
+                }
+                else if (color_char.Color == null)
                 {
                     s.Append(_char);
                 }
                 else
                 {
-                    s.Append($"[{color!.Value}]{_char}[/]");
+                    s.Append($"[{color_char.Color.Value}]{_char}[/]");
                 }
             };
 
@@ -1344,7 +1356,7 @@ internal class NoteEditor
         }
     }
 
-    private static Dictionary<ConsoleKey, string> tree_ctrl_functions = new Dictionary<ConsoleKey, string>()
+    private static Dictionary<ConsoleKey, string> tree_ctrl_functions = new()
     {
         { ConsoleKey.Q, "Quit NoteWorthy" },
         { ConsoleKey.O, "Open current directory in file explorer" },
@@ -1360,7 +1372,7 @@ internal class NoteEditor
         { ConsoleKey.H, "Toggle this help panel" }
     };
 
-    private static Dictionary<ConsoleKey, string> tree_regular_functions = new Dictionary<ConsoleKey, string>()
+    private static Dictionary<ConsoleKey, string> tree_regular_functions = new()
     {
         { ConsoleKey.UpArrow, "Move selection up" },
         { ConsoleKey.DownArrow, "Move selection down" },
@@ -1378,7 +1390,7 @@ internal class NoteEditor
         { ConsoleKey.Backspace, "Delete selected tree item" }
     };
 
-    private static Dictionary<ConsoleKey, string> editor_ctrl_functions = new Dictionary<ConsoleKey, string>()
+    private static Dictionary<ConsoleKey, string> editor_ctrl_functions = new()
     {
         { ConsoleKey.Q, "Quit NoteWorthy" },
         { ConsoleKey.L, "Print dashed-line (if line empty)" },
@@ -1390,11 +1402,13 @@ internal class NoteEditor
         { ConsoleKey.Y, "Redo" },
         { ConsoleKey.End, "Move to end of note" },
         { ConsoleKey.Home, "Move to start of note" },
-        { ConsoleKey.LeftArrow, "Move to previous word" },
-        { ConsoleKey.RightArrow, "Move to next word" },
+        { ConsoleKey.LeftArrow, "Move to previous word (+shift to select)" },
+        { ConsoleKey.RightArrow, "Move to next word (+shift to select)" },
+        { ConsoleKey.C, "Copy selected text" },
+        { ConsoleKey.A, "Select all text" },
         { ConsoleKey.K, "Toggle insert mode" },
         { ConsoleKey.Backspace, "Delete word" },
-        { ConsoleKey.Delete, "Delete word (to the right)" },
+        { ConsoleKey.Delete, "Delete word (to the right of cursor)" },
         { ConsoleKey.N, "Create new note" },
         { ConsoleKey.M, "Create new folder" },
         { ConsoleKey.O, "Open current directory in file explorer" },
@@ -1409,16 +1423,16 @@ internal class NoteEditor
         { ConsoleKey.H, "Toggle the help panel" },
     };
 
-    private static Dictionary<ConsoleKey, string> editor_regular_functions = new Dictionary<ConsoleKey, string>()
+    private static Dictionary<ConsoleKey, string> editor_regular_functions = new()
     {
         { ConsoleKey.Escape, "Unfocus editor / focus tree" },
         { ConsoleKey.Enter, "Insert new line" },
-        { ConsoleKey.UpArrow, "Move cursor up" },
-        { ConsoleKey.DownArrow, "Move cursor down (alias: shift+enter)" },
-        { ConsoleKey.LeftArrow, "Move cursor left" },
-        { ConsoleKey.RightArrow, "Nove cursor right" },
-        { ConsoleKey.End, "Move to end of line" },
-        { ConsoleKey.Home, "Move to start of line" },
+        { ConsoleKey.UpArrow, "Move cursor up (+shift to move line)" },
+        { ConsoleKey.DownArrow, "Move cursor down (+shift to move line)" },
+        { ConsoleKey.LeftArrow, "Move cursor left (+shift to select)" },
+        { ConsoleKey.RightArrow, "Nove cursor right (+shift to select)" },
+        { ConsoleKey.End, "Move to end of line (+shift to select)" },
+        { ConsoleKey.Home, "Move to start of line (+shift to select)" },
         { ConsoleKey.Insert, "Toggle insert mode" },
         { ConsoleKey.Backspace, "Delete character" },
         { ConsoleKey.Delete, "Delete character (to the right)" },
@@ -1527,6 +1541,8 @@ internal class NoteEditor
         Set_unsaved_changes();
     }
 
+    #region Highlighting (selecting text)
+
     public void HighlightNextWord()
     {
         if (AtEndOfLine())
@@ -1538,13 +1554,127 @@ internal class NoteEditor
         else
         {
             int index = FindIndexOf_EndOfNextWord();
-            for (int i = pos_in_line; i <= index; i++)
+            for (int i = pos_in_line; i < index; i++)
             {
-                ColorChar c = lines[line_num][i];
-                (byte, byte) bytes = c.GetBytes();
-                lines[line_num][i] = new ColorChar(bytes.Item1, bytes.Item2, highlighted: true);
+                lines[line_num][i].ToggleHighlighting();
             }
             pos_in_line = index;
         }
     }
+
+    public void HighlightPreviousWord()
+    {
+        if (AtBeginningOfLine())
+        {
+            if (OnFirstLine()) return;
+            line_num--;
+            pos_in_line = GetCharsInLine();
+        }
+        else
+        {
+            int index = FindIndexOf_StartOfPreviousWord();
+            for (int i = index; i < pos_in_line; i++)
+            {
+                lines[line_num][i].ToggleHighlighting();
+            }
+            pos_in_line = index;
+        }
+    }
+
+    /// <summary>
+    /// Returns true if at least one character is highlighted
+    /// </summary>
+    public bool SomeCharsAreHighlighted()
+    {
+        for (int i = 0; i < lines.Count; i++)
+        {
+            for (int j = 0; j < lines[i].Count; j++)
+            {
+                if (lines[i][j].IsHighlighted()) return true;
+            }
+        }
+
+        return false;
+    }
+
+    public void UnhighlightAllChars()
+    {
+        for (int i = 0; i < lines.Count; i++)
+        {
+            for (int j = 0; j < lines[i].Count; j++)
+            {
+                if (lines[i][j].IsHighlighted()) lines[i][j].ToggleHighlighting();
+            }
+        }
+    }
+
+    [STAThread]
+    public void CopyHighlightedText()
+    {
+        StringBuilder highlighted_text = new(capacity: BUFFER_HEIGHT * BUFFER_WIDTH);
+
+        for (int i = 0; i < lines.Count; i++)
+        {
+            bool line_had_highlighted_char = false;
+            for (int j = 0; j < lines[i].Count; j++)
+            {
+                if (lines[i][j].IsHighlighted())
+                {
+                    highlighted_text.Append(lines[i][j].Char);
+                    lines[i][j].ToggleHighlighting();
+                    line_had_highlighted_char = true;
+                }
+            }
+
+            if (line_had_highlighted_char) highlighted_text.Append('\n');
+        }
+
+        ClipboardService.SetText(highlighted_text.ToString().Trim());
+    }
+
+    public void HighlightWholeNote()
+    {
+        for (int i = 0; i < lines.Count; i++)
+        {
+            for (int j = 0; j < lines[i].Count; j++)
+            {
+                if (!lines[i][j].IsHighlighted()) lines[i][j].ToggleHighlighting();
+            }
+        }
+
+        line_num = lines.Count - 1;
+        pos_in_line = lines[line_num].Count;
+    }
+
+    public void HighlightPreviousChar()
+    {
+        if (pos_in_line == 0)
+        {
+            if (OnFirstLine()) return;
+            line_num--;
+            pos_in_line = GetCharsInLine();
+        }
+        else
+        {
+            lines[line_num][pos_in_line - 1].ToggleHighlighting();
+            pos_in_line--;
+        }
+    }
+
+    public void HighlightNextChar()
+    {
+        if (pos_in_line == GetCharsInLine())
+        {
+            if (OnLastLine()) return;
+            line_num++;
+            pos_in_line = 0;
+        }
+        else
+        {
+            lines[line_num][pos_in_line].ToggleHighlighting();
+            pos_in_line++;
+        }
+    }
+
+    #endregion
 }
