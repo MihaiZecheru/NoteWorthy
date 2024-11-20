@@ -85,8 +85,8 @@ UpArrow - Move cursor up (+shift to select)
 DownArrow - Move cursor down (alias: shift+enter) (+shift to select)
 LeftArrow - Move cursor left (+shift to move line)
 RightArrow - Move cursor right (+shift to move line)
-End - Move cursor to the end of the line
-Home - Move cursor to the beginning of the line
+End - Move cursor to the end of the line (+shift to select)
+Home - Move cursor to the beginning of the line (+shift to select)
 Insert - Toggle insert mode
 Backspace - Delete character
 Delete - Delete character (to the right)
