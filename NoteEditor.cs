@@ -1467,10 +1467,10 @@ internal class NoteEditor
         { ConsoleKey.N, "Create new note" },
         { ConsoleKey.M, "Create new folder" },
         { ConsoleKey.R, "Reload the tree" },
+        { ConsoleKey.H, "Toggle this help panel (press to go back)" },
         { ConsoleKey.D, "Delete the selected tree item" },
         { ConsoleKey.D8, "Open the settings file (+shift to reload it)" },
         { ConsoleKey.D1, "Toggle tree visibility" },
-        { ConsoleKey.H, "Toggle this help panel" }
     };
 
     private static Dictionary<ConsoleKey, string> tree_regular_functions = new()
@@ -1483,7 +1483,7 @@ internal class NoteEditor
         { ConsoleKey.Enter, "Open the selected note" },
         { ConsoleKey.Spacebar, "Preview the selected note" },
         { ConsoleKey.Tab, "Switch focus to the editor" },
-        { ConsoleKey.H, "Toggle this help panel" },
+        { ConsoleKey.H, "Toggle this help panel (press to go back)" },
         { ConsoleKey.F2, "Rename the selected item" },
         { ConsoleKey.N, "Create new note" },
         { ConsoleKey.M, "Create new folder" },
@@ -1502,6 +1502,7 @@ internal class NoteEditor
         { ConsoleKey.Z, "Undo" },
         { ConsoleKey.Y, "Redo" },
         { ConsoleKey.V, "Might not work as expected. Use: Alt+V instead" },
+        { ConsoleKey.H, "Toggle this help panel (press to go back)" },
         { ConsoleKey.End, "Move to end of note" },
         { ConsoleKey.Home, "Move to start of note" },
         { ConsoleKey.LeftArrow, "Move to prev word (+shift to select)" },
@@ -1522,12 +1523,11 @@ internal class NoteEditor
         { ConsoleKey.I, "Toggle tertiary color (+shift for solo char)" },
         { ConsoleKey.D1, "Toggle tree visibility" },
         { ConsoleKey.G, "Go to line" },
-        { ConsoleKey.H, "Toggle the help panel" },
     };
 
     private static Dictionary<ConsoleKey, string> editor_regular_functions = new()
     {
-        { ConsoleKey.Escape, "Unfocus editor / focus tree" },
+        { ConsoleKey.Escape, "Focus tree / clear selected text" },
         { ConsoleKey.Enter, "Insert new line" },
         { ConsoleKey.UpArrow, "Move cursor up (+shift to move line)" },
         { ConsoleKey.DownArrow, "Move cursor down (+shift to move line)" },
@@ -1628,7 +1628,7 @@ internal class NoteEditor
         return new Panel(
             keymap.Skip(skip_amount).Aggregate("", (acc, kv) =>
             {
-                string color = kv.Key == lastKeyPressInfo.Key ? "aqua" : "yellow";
+                string color = kv.Key == lastKeyPressInfo.Key || kv.Key == ConsoleKey.H ? "aqua" : "yellow";
                 return acc + $"[{color}]{ctrlString}{kv.Key}[/] - {kv.Value}\n";
             })
         ).Expand().RoundedBorder().Header("[aqua]" + panelHeader + "[/]").BorderColor(Color.Aqua);
