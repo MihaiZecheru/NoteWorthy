@@ -252,7 +252,9 @@ internal class NoteEditor
     /// 
     /// Accounts for special cases like the automatic dash + space indent and the automatic vocab-indent when a word is defined with a semicolon
     /// </summary>
-    public void InsertLine()
+    /// <param name="direct_insert">Default false. True when pasting. If true, the new line will be added without any formatting changes
+    /// or anything else. The new line is inserted simply without any other modifications in order to keep the paste pure.</param>
+    public void InsertLine(bool direct_insert = false)
     {
         if (lines.Count == BUFFER_HEIGHT) return;
 
@@ -262,7 +264,7 @@ internal class NoteEditor
 
             // If the current line is indented + dash + space, the new line will be indented with a dash + space too
             // Ex, if it starts with this: "    - "
-            if (lines[line_num].Count >= 6 && lines[line_num][0] == ' ' && lines[line_num][1] == ' ' && lines[line_num][2] == ' ' && lines[line_num][3] == ' ' && lines[line_num][4] == '-' && lines[line_num][5] == ' ')
+            if (!direct_insert && lines[line_num].Count >= 6 && lines[line_num][0] == ' ' && lines[line_num][1] == ' ' && lines[line_num][2] == ' ' && lines[line_num][3] == ' ' && lines[line_num][4] == '-' && lines[line_num][5] == ' ')
             {
                 // If enter is pressed when the line is just the dash + space indent ("    - "), clear that dash + space indent and make a new line
                 if (lines[line_num].Count == 6)
@@ -287,7 +289,7 @@ internal class NoteEditor
             // Vocab definitions are detected when there is a colon followed by a space in the line
             // the line is also within 9 chars of being full
             // The : cannot be the first character
-            else if (line_chars.Count >= BUFFER_WIDTH - 9 && line_chars.IndexOf(':') != 0 && line_chars.Contains(':') && lines[line_num][line_chars.IndexOf(':') + 1] == ' ')
+            else if (!direct_insert && line_chars.Count >= BUFFER_WIDTH - 9 && line_chars.IndexOf(':') != 0 && line_chars.Contains(':') && lines[line_num][line_chars.IndexOf(':') + 1] == ' ')
             {
                 ColorChar space_char = new((byte)' ', 0);
 
@@ -307,7 +309,7 @@ internal class NoteEditor
             // If enter is pressed when the line is just a bunch of spaces, delete the spaces in that line.
             // Used for when the vocab definition indent occurs but the user doesn't use it and goes to the next line; in this case the
             // indent that isn't wanted should be cleared
-            else if (line_chars.All(c => c == ' '))
+            else if (!direct_insert && line_chars.All(c => c == ' '))
             {
                 // Clear current line
                 lines[line_num] = new();
@@ -317,7 +319,7 @@ internal class NoteEditor
             }
             // If enter is pressed when the line starts with more than 4 spaces (a tab) but isn't JUST the spaces, then tab the new line enough
             // to match up. Note: by this point, the entire not isn't spaces because of the previous condition
-            else if (line_chars.Count > 4 && line_chars[0] == ' ' && line_chars[1] == ' ' && line_chars[2] == ' ' && line_chars[3] == ' ')
+            else if (!direct_insert && line_chars.Count > 4 && line_chars[0] == ' ' && line_chars[1] == ' ' && line_chars[2] == ' ' && line_chars[3] == ' ')
             {
                 ColorChar space_char = new((byte)' ', 0);
                 int spaces_to_add = GetLeadingSpacesCount(new string(lines[line_num].Select(c => c.Char).ToArray()));
@@ -331,7 +333,7 @@ internal class NoteEditor
 
                 pos_in_line = spaces_to_add;
             }
-            // Normal indent, no special cases
+            // Normal enter keypress, no special cases
             else
             {
                 lines.Insert(line_num + 1, new());
@@ -378,7 +380,11 @@ internal class NoteEditor
     /// Insert <paramref name="c"/> at the current position in the editor.
     /// </summary>
     /// <param name="c">Char to insert</param>
-    public void InsertChar(char c)
+    /// <param name="direct_insert">False by default. True when pasting.
+    /// If true, auto-capitalization and indent-matching will be skipped.
+    /// The character will be inserted directly without any of the features that are meant for when the user is typing by hand.
+    /// Mofications regarding color will be preserved, i.e. AutoColorNumbers, AutoColorVariables, etc.</param>
+    public void InsertChar(char c, bool direct_insert = false)
     {
         if (LineIsFull() && insertModeOn) return;
         // For overwrite mode
@@ -392,6 +398,8 @@ internal class NoteEditor
 
         // Auto-capitalize lines if the setting is on and the char is a letter. The 'or' is for checking for "    - " case
         if (
+            !direct_insert
+            &&
             Settings.AutoCapitalizeLines
             &&
             char.IsAsciiLetter(c)
@@ -450,6 +458,7 @@ internal class NoteEditor
 
                 // Changing the color of the previous variable
                 char char_to_color = lines[line_num][pos_in_line - 1].Char;
+
                 // Do not color 'A', 'a', 'I', or 'i'
                 if (char.ToLower(char_to_color) != 'a' && char.ToLower(char_to_color) != 'i')
                 {
@@ -473,7 +482,7 @@ internal class NoteEditor
 
             // Before adding the char, check for the dash + space indent thing.
             // If a dash then a space is typed and the line prior contains text (isn't empty), the dash will automatically be tabbed
-            if (lines[line_num].Count == 1 && lines[line_num][0] == '-' && c == ' ' && line_num >= 1 && lines[line_num - 1].Count != 0)
+            if (!direct_insert && lines[line_num].Count == 1 && lines[line_num][0] == '-' && c == ' ' && line_num >= 1 && lines[line_num - 1].Count != 0)
             {
                 // _char is a space here
                 lines[line_num] = new List<ColorChar>()
@@ -1468,6 +1477,7 @@ internal class NoteEditor
         { ConsoleKey.W, "Close editor" },
         { ConsoleKey.Z, "Undo" },
         { ConsoleKey.Y, "Redo" },
+        { ConsoleKey.V, "Might not work as expected. Use: Alt+V instead" },
         { ConsoleKey.End, "Move to end of note" },
         { ConsoleKey.Home, "Move to start of note" },
         { ConsoleKey.LeftArrow, "Move to prev word (+shift to select)" },
@@ -1707,7 +1717,7 @@ internal class NoteEditor
                 }
             }
 
-            if (line_had_highlighted_char) highlighted_text.Append('\n');
+            if (line_had_highlighted_char || lines[i].Count == 0) highlighted_text.Append('\n');
         }
 
         ClipboardService.SetText(highlighted_text.ToString().Trim());

@@ -97,3 +97,5 @@ Notes:
 A dash and a space on an empty line will auto-indent
 If auto-capitalize is on and you don't want the first character to be capitalized, hold shift while typing the first char to make it lowercase
 AutoColorVocabDefinitions will only activate if the text prior to the colon is within the first third of the screen
+`Do not use Ctrl+V` to paste! This is handled by the terminal, not by NoteWorthy. Ctrl+V formatting might mess up as a result.
+	- `Use Alt+V instead!`

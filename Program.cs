@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
+using TextCopy;
 
 namespace NoteWorthy;
 
@@ -498,6 +499,12 @@ class Program
 
     private static void HandleEditorInput(ConsoleKeyInfo keyInfo)
     {
+        if (keyInfo.Key == ConsoleKey.V && keyInfo.Modifiers.HasFlag(ConsoleModifiers.Alt))
+        {
+            HandlePaste();
+            return;
+        }
+
         // For shortcuts with the control key
         if (keyInfo.Modifiers.HasFlag(ConsoleModifiers.Control))
         {
@@ -1480,5 +1487,29 @@ class Program
         AnsiConsole.Markup("[yellow]The error message is displayed below.\nPlease send the developer a picture of the error message at [lime]zecheruchris@gmail.com[/] if possible[/]\n\n");
         AnsiConsole.WriteException(ex);
         AnsiConsole.Cursor.Show();
+    }
+
+    private static void HandlePaste()
+    {
+        string? text_to_paste = ClipboardService.GetText();
+
+        if (text_to_paste == null || text_to_paste.Length == 0) return;
+        
+        foreach (char c in text_to_paste)
+        {
+            if (c == '\n')
+            {
+                noteEditor.InsertLine(direct_insert: true);
+            }
+            else
+            {
+                noteEditor.InsertChar(c, direct_insert: true);
+            }
+
+            Set_NoteEditorRequiresUpdate();
+        }
+
+        // clear all input while the paste was occurring
+        while (Console.KeyAvailable) Console.ReadKey(true);
     }
 }
