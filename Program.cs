@@ -10,6 +10,8 @@ class Program
 {
     public static Spectre.Console.Style DefaultStyle = new Style(Color.White, Color.Grey46);
 
+    public static string RECYCLE_BIN_PATH = Path.Combine(Directory.GetCurrentDirectory(), "recycle_bin");
+
     /// <summary>
     /// The path to the root 'notes' directory which contains all the notes
     /// </summary>

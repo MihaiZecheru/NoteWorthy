@@ -324,13 +324,15 @@ internal class NoteTree
         TreeItem? selected_tree_item = GetSelectedTreeItem();
         if (selected_tree_item == null) return;
 
+        MakeSureRecycleBinExists();
+
         if (selected_tree_item.IsDir)
         {
-            Directory.Delete(selected_tree_item.FilePath, true);
+            Directory.Move(selected_tree_item.FilePath, Path.Combine(Program.RECYCLE_BIN_PATH, $"{selected_tree_item.Name}-{DateTime.Now.ToString("yyyy-MM-dd")}"));
         }
         else
         {
-            File.Delete(selected_tree_item.FilePath);
+            File.Move(selected_tree_item.FilePath, Path.Combine(Program.RECYCLE_BIN_PATH, $"{selected_tree_item.Name.Substring(0, selected_tree_item.Name.Length - 3)}-{DateTime.Now.ToString("yyyy-MM-dd")}.nw"));
         }
 
         if (current_parent_treeItem == null)
@@ -348,6 +350,14 @@ internal class NoteTree
         }
 
         Set_RequiresUpdate();
+    }
+
+    private void MakeSureRecycleBinExists()
+    {
+        if (!Directory.Exists(Program.RECYCLE_BIN_PATH))
+        {
+            Directory.CreateDirectory(Program.RECYCLE_BIN_PATH);
+        }
     }
 
     /// <summary>
