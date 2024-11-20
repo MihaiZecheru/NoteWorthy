@@ -266,14 +266,16 @@ internal class NoteEditor
             // Ex, if it starts with this: "    - "
             if (!direct_insert && lines[line_num].Count >= 6 && lines[line_num][0] == ' ' && lines[line_num][1] == ' ' && lines[line_num][2] == ' ' && lines[line_num][3] == ' ' && lines[line_num][4] == '-' && lines[line_num][5] == ' ')
             {
-                // If enter is pressed when the line is just the dash + space indent ("    - "), clear that dash + space indent and make a new line
+                // If enter is pressed when the line is just the dash + space indent ("    - "), replace the dash with a space, aligning the indent.
+                // If the user presses enter again later, the spaces will be cleared and a new line will be added
                 if (lines[line_num].Count == 6)
                 {
-                    // Clear current line
-                    lines[line_num] = new();
+                    // Replace dash + space with hanging indent that aligns line with previous dash + space
+                    lines[line_num][4] = new ColorChar((byte)' ', 0);
+                    return;
                     // Add new empty line
-                    lines.Insert(line_num + 1, new());
-                    pos_in_line = 0;
+                    //lines.Insert(line_num + 1, new());
+                    //pos_in_line = 0;
                 }
                 else
                 {
@@ -1438,6 +1440,8 @@ internal class NoteEditor
 
     public void InsertTab()
     {
+        // Insert tab normally
+
         int size = 4;
         bool tab_fits = lines[line_num].Count <= BUFFER_WIDTH - 4;
 
