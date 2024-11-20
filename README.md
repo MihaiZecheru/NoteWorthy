@@ -79,7 +79,7 @@ Ctrl+1 - Toggle tree visibility
 Ctrl+G - Toggle line numbers
 Ctrl+H - Toggle this help panel
 
-Escape - Unfocus editor / focus tree
+Escape - Unfocus editor / focus tree `OR` unselect the selected text 
 Enter - Insert new line
 UpArrow - Move cursor up (+shift to select)
 DownArrow - Move cursor down (alias: shift+enter) (+shift to select)
@@ -99,3 +99,4 @@ If auto-capitalize is on and you don't want the first character to be capitalize
 AutoColorVocabDefinitions will only activate if the text prior to the colon is within the first third of the screen
 `Do not use Ctrl+V` to paste! This is handled by the terminal, not by NoteWorthy. Ctrl+V formatting might mess up as a result.
 	- `Use Alt+V instead!`
+If you have some text selected in the editor and want to clear the selection (not delete, just unselect), press the escape key.
