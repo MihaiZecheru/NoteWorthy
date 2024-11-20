@@ -1,6 +1,4 @@
 ﻿using Spectre.Console;
-using System;
-using System.Linq;
 using System.Text;
 
 namespace NoteWorthy;
@@ -237,12 +235,14 @@ internal class NoteEditor
         }
 
         lines.RemoveAt(line_num);
+        
         if (line_num == lines.Count)
         {   
             line_num--;
         }
+
         pos_in_line = 0;
-        unsaved_changes = true;
+        Set_unsaved_changes();
     }
 
     /// <summary>
@@ -260,7 +260,7 @@ internal class NoteEditor
 
             // If the current line is indented + dash + space, the new line will be indented with a dash + space too
             // Ex, if it starts with this: "    - "
-            if (lines[line_num].Count >= 6 && lines[line_num][0].Char == ' ' && lines[line_num][1].Char == ' ' && lines[line_num][2].Char == ' ' && lines[line_num][3].Char == ' ' && lines[line_num][4].Char == '-' && lines[line_num][5].Char == ' ')
+            if (lines[line_num].Count >= 6 && lines[line_num][0] == ' ' && lines[line_num][1] == ' ' && lines[line_num][2] == ' ' && lines[line_num][3] == ' ' && lines[line_num][4] == '-' && lines[line_num][5] == ' ')
             {
                 ColorChar space_char = new ColorChar((byte)' ', 0);
                 lines.Insert(line_num + 1, new List<ColorChar>()
@@ -323,7 +323,7 @@ internal class NoteEditor
         }
 
         line_num++;
-        unsaved_changes = true;
+        Set_unsaved_changes();
     }
 
     /// <summary>
@@ -350,7 +350,7 @@ internal class NoteEditor
             && (
                 AtBeginningOfLine()
                 ||
-                (lines[line_num].Count == 6 && lines[line_num][0].Char == ' ' && lines[line_num][1].Char == ' ' && lines[line_num][2].Char == ' ' && lines[line_num][3].Char == ' ' && lines[line_num][4].Char == '-' && lines[line_num][5].Char == ' ')
+                (lines[line_num].Count == 6 && lines[line_num][0] == ' ' && lines[line_num][0] == ' ' && lines[line_num][1] == ' ' && lines[line_num][2] == ' ' && lines[line_num][4] == '-' && lines[line_num][5] == ' ')
             )
         )
         {
@@ -396,7 +396,7 @@ internal class NoteEditor
             // If AutoColorVariables is on and the char is a space, and two chars before is a space, then make one char before have the PrimaryColor as specified in the settings file
             // ex: " x " the x becomes colored
             
-            else if (Settings.AutoColorVariables && lines[line_num].Count >= 1 && (c == ' ' || char.IsSymbol(c)) && lines[line_num][pos_in_line - 1].Char != ' ' && (pos_in_line - 1 == 0 || lines[line_num][pos_in_line - 2].Char == ' ' || char.IsSymbol(lines[line_num][pos_in_line - 2].Char)) && char.IsAsciiLetter(lines[line_num][pos_in_line - 1].Char))
+            else if (Settings.AutoColorVariables && lines[line_num].Count >= 1 && (c == ' ' || char.IsSymbol(c)) && lines[line_num][pos_in_line - 1].Char != ' ' && (pos_in_line - 1 == 0 || lines[line_num][pos_in_line - 2] == ' ' || char.IsSymbol(lines[line_num][pos_in_line - 2].Char)) && char.IsAsciiLetter(lines[line_num][pos_in_line - 1].Char))
             {
                 // The space that was typed
                 _char = new ColorChar((byte)c, 0);
@@ -426,7 +426,7 @@ internal class NoteEditor
 
             // Before adding the char, check for the dash + space indent thing.
             // If a dash then a space is typed and the line prior contains text (isn't empty), the dash will automatically be tabbed
-            if (lines[line_num].Count == 1 && lines[line_num][0].Char == '-' && c == ' ' && line_num >= 1 && lines[line_num - 1].Count != 0)
+            if (lines[line_num].Count == 1 && lines[line_num][0] == '-' && c == ' ' && line_num >= 1 && lines[line_num - 1].Count != 0)
             {
                 // _char is a space here
                 lines[line_num] = new List<ColorChar>()
@@ -455,26 +455,22 @@ internal class NoteEditor
             }
         }
 
-        unsaved_changes = true;
+        Set_unsaved_changes();
         pos_in_line++;
-        if (Settings.AutoSave)
-        {
-            ms_since_last_char_typed = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        }
     }
 
-    private long ms_since_last_char_typed = 0;
+    private long ms_since_last_change = 0;
 
     /// <summary>
     /// Returns true if an auto save should occur, which should happen when 1500ms have passed since the last char has been typed.
     /// </summary>
     public bool CheckIfAutoSaveRequired()
     {
-        bool auto_save = Settings.AutoSave && ms_since_last_char_typed != 0 && DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - ms_since_last_char_typed > 1500;
+        bool auto_save = Settings.AutoSave && ms_since_last_change != 0 && DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - ms_since_last_change > 1500;
         
         if (auto_save)
         {
-            ms_since_last_char_typed = 0;
+            ms_since_last_change = 0;
         }
 
         return auto_save;
@@ -538,20 +534,20 @@ internal class NoteEditor
         else
         {
             // Check if line is equal to "    - " and the cursor is at the end of the line. If true, delete the whole line
-            if (lines[line_num].Count == 6 && lines[line_num][0].Char == ' ' && lines[line_num][1].Char == ' ' && lines[line_num][2].Char == ' ' && lines[line_num][3].Char == ' ' && lines[line_num][4].Char == '-' && lines[line_num][5].Char == ' ')
+            if (lines[line_num].Count == 6 && lines[line_num][0] == ' ' && lines[line_num][1] == ' ' && lines[line_num][2] == ' ' && lines[line_num][3] == ' ' && lines[line_num][4] == '-' && lines[line_num][5] == ' ')
             {
                 lines[line_num] = new();
                 pos_in_line = 0;
             }
             // Check if the entire line is spaces. If so, clear proceeding spaces
-            else if (AtEndOfLine() && lines[line_num].All(c => c.Char == ' '))
+            else if (AtEndOfLine() && lines[line_num].All(c => c == ' '))
             {
                 // Clear spaces
                 lines[line_num] = new();
                 pos_in_line = 0;
             }
             // Check if the cursor is at the end of the line and the previous four chars make a tab. If true, delete the tab
-            else if (lines[line_num].Count >= 4 && lines[line_num][pos_in_line - 1].Char == ' ' && lines[line_num][pos_in_line - 2].Char == ' ' && lines[line_num][pos_in_line - 3].Char == ' ' && lines[line_num][pos_in_line - 4].Char == ' ')
+            else if (lines[line_num].Count >= 4 && lines[line_num][pos_in_line - 1] == ' ' && lines[line_num][pos_in_line - 2] == ' ' && lines[line_num][pos_in_line - 3] == ' ' && lines[line_num][pos_in_line - 4] == ' ')
             {
                 lines[line_num].RemoveRange(pos_in_line - 4, 4);
                 pos_in_line -= 4;
@@ -564,7 +560,7 @@ internal class NoteEditor
             }
         }
 
-        unsaved_changes = true;
+        Set_unsaved_changes();
     }
 
     /// <summary>
@@ -584,7 +580,7 @@ internal class NoteEditor
             lines[line_num].RemoveAt(pos_in_line);
         }
 
-        unsaved_changes = true;
+        Set_unsaved_changes();
     }
 
     /// <summary>
@@ -616,7 +612,7 @@ internal class NoteEditor
             pos_in_line = start_of_word;
         }
 
-        unsaved_changes = true;
+        Set_unsaved_changes();
     }
     
     /// <summary>
@@ -642,7 +638,17 @@ internal class NoteEditor
             // pos_in_line does not have to be modified because the word to the RIGHT of the cursor is deleted
         }
 
-        unsaved_changes = true;
+        Set_unsaved_changes();
+    }
+
+    private void Set_unsaved_changes()
+    {
+        if (Settings.AutoSave)
+        {
+            ms_since_last_change = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        }
+
+        Set_unsaved_changes();
     }
 
     /// <summary>
@@ -779,7 +785,7 @@ internal class NoteEditor
         lines = lastState.note_content;
         line_num = lastState.Item2.cursor_line_num;
         pos_in_line = lastState.Item2.cursor_pos_in_line;
-        unsaved_changes = true;
+        Set_unsaved_changes();
     }
 
     public void Redo()
@@ -798,7 +804,7 @@ internal class NoteEditor
         lines = lastState.note_content;
         line_num = lastState.Item2.cursor_line_num;
         pos_in_line = lastState.Item2.cursor_pos_in_line;
-        unsaved_changes = true;
+        Set_unsaved_changes();
     }
 
     /// <summary>
@@ -906,7 +912,7 @@ internal class NoteEditor
 
         if (Settings.AutoSave)
         {
-            ms_since_last_char_typed = 0;
+            ms_since_last_change = 0;
         }
 
         SaveState();
@@ -1057,7 +1063,7 @@ internal class NoteEditor
         lines[line_num - 1] = temp;
 
         line_num--;
-        unsaved_changes = true;
+        Set_unsaved_changes();
     }
 
     public void MoveLineDown()
@@ -1069,7 +1075,7 @@ internal class NoteEditor
         lines[line_num + 1] = temp;
 
         line_num++;
-        unsaved_changes = true;
+        Set_unsaved_changes();
     }
 
     private Markup GetDisplayMarkup()
@@ -1518,6 +1524,27 @@ internal class NoteEditor
 
         lines[line_num].AddRange(Enumerable.Repeat(new ColorChar((byte)'-', 0), BUFFER_WIDTH));
         pos_in_line = BUFFER_WIDTH;
-        unsaved_changes = true;
+        Set_unsaved_changes();
+    }
+
+    public void HighlightNextWord()
+    {
+        if (AtEndOfLine())
+        {
+            if (OnLastLine()) return;
+            line_num++;
+            pos_in_line = 0;
+        }
+        else
+        {
+            int index = FindIndexOf_EndOfNextWord();
+            for (int i = pos_in_line; i <= index; i++)
+            {
+                ColorChar c = lines[line_num][i];
+                (byte, byte) bytes = c.GetBytes();
+                lines[line_num][i] = new ColorChar(bytes.Item1, bytes.Item2, highlighted: true);
+            }
+            pos_in_line = index;
+        }
     }
 }
