@@ -34,7 +34,6 @@ internal static class Settings
             foreach (string line in lines) {
                 if (line.Length == 0 || line.StartsWith("// ")) continue;
                 string[] parts = line.Split('=');
-                parts[1] = parts[1].Substring(0, parts[1].Length - parts[1].IndexOf(" //"));
                 s.Add(parts[0].Trim(), parts[1].Trim());
             }
 
@@ -65,18 +64,29 @@ internal static class Settings
     public static void CreateDefaultSettingsFile()
     {
         File.WriteAllText(file_path, @"// Note: all settings are case sensitive. If an invalid value is provided, the default will be used
+// Do not touch the comments
 
 // General settings
-write_mode=insert // options: insert | overwrite - starting character type behaviour - default: insert
-auto_capitalize_lines=false // true | false - true to capitalize the first letter of each line - default: false
-auto_color_numbers=false // true | false - true to automatically color all numbers in the text with the secondary_color - default: false
-auto_color_variables=false // true | false - true to automatically color all variables (single characters like 'x' or 'y' that are not 'a' or 'i' specifically) in the text with the primary_color - default: false
-auto_save=false // true | false - true to automatically save the file after typing - default: false
+
+// options: insert | overwrite - starting character type behaviour - default: insert
+write_mode=insert
+// true | false - true to capitalize the first letter of each line - default: false
+auto_capitalize_lines=false
+// true | false - true to automatically color all numbers in the text with the secondary_color - default: false
+auto_color_numbers=false
+// true | false - true to automatically color all variables (single characters like 'x' or 'y' that are not 'a' or 'i' specifically) in the text with the primary_color - default: false
+auto_color_variables=false
+// true | false - true to automatically save the file after typing - default: false
+auto_save=false
 
 // color options: https://spectreconsole.net/appendix/colors use the # column to represent the color
-primary_color=12 // custom text color for ctrl+b - default: 12 (blue)
-secondary_color=2 // custom text color for ctrl+u - default: 2 (green)
-tertiary_color=9 // custom text color for ctrl+i - default: 9 (red)
+
+// custom text color for ctrl+b - default: 12 (blue)
+primary_color=12
+// custom text color for ctrl+u - default: 2 (green)
+secondary_color=2
+// custom text color for ctrl+i - default: 9 (red)
+tertiary_color=9
 ");
     }
 

@@ -354,7 +354,18 @@ internal class NoteEditor
             )
         )
         {
-            c = char.ToUpper(c);
+            // if shift is pressed, do not make capital. it's like caps locks reversing the case
+
+            // shift not pressed. make capital
+            if (char.ToLower(c) == c)
+            {
+                c = char.ToUpper(c);
+            }
+            // shift pressed. keep lowercase
+            else
+            {
+                c = char.ToLower(c);
+            }
         }
 
         // Add color to char
@@ -377,11 +388,29 @@ internal class NoteEditor
         }
         else
         {
-            // If AutoColorNumbers is on and the char is a number, color it with the SecondaryColor as specified
+            // If AutoColorNumbers is on and the char is a number, color it with the SecondaryColor as specified in the settings file
             if (Settings.AutoColorNumbers && char.IsAsciiDigit(c))
             {
                 _char = new ColorChar((byte)c, Settings.SecondaryColor);
             }
+            // If AutoColorVariables is on and the char is a space, and two chars before is a space, then make one char before have the PrimaryColor as specified in the settings file
+            // ex: " x " the x becomes colored
+            
+            else if (Settings.AutoColorVariables && lines[line_num].Count >= 1 && (c == ' ' || char.IsSymbol(c)) && lines[line_num][pos_in_line - 1].Char != ' ' && (pos_in_line - 1 == 0 || lines[line_num][pos_in_line - 2].Char == ' ' || char.IsSymbol(lines[line_num][pos_in_line - 2].Char)) && char.IsAsciiLetter(lines[line_num][pos_in_line - 1].Char))
+            {
+                // The space that was typed
+                _char = new ColorChar((byte)c, 0);
+
+                // Changing the color of the previous variable
+                char char_to_color = lines[line_num][pos_in_line - 1].Char;
+                // Do not color 'A', 'a', 'I', or 'i'
+                if (char.ToLower(char_to_color) != 'a' && char.ToLower(char_to_color) != 'i')
+                {
+                    // Replace the variable with a colored version of the char
+                    lines[line_num][pos_in_line - 1] = new ColorChar((byte)char_to_color, Settings.PrimaryColor);
+                }
+            }
+            // Add the char with no color
             else
             {
                 // 0 is the null value (no color specified)
@@ -428,6 +457,27 @@ internal class NoteEditor
 
         unsaved_changes = true;
         pos_in_line++;
+        if (Settings.AutoSave)
+        {
+            ms_since_last_char_typed = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        }
+    }
+
+    private long ms_since_last_char_typed = 0;
+
+    /// <summary>
+    /// Returns true if an auto save should occur, which should happen when 1500ms have passed since the last char has been typed.
+    /// </summary>
+    public bool CheckIfAutoSaveRequired()
+    {
+        bool auto_save = Settings.AutoSave && ms_since_last_char_typed != 0 && DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - ms_since_last_char_typed > 1500;
+        
+        if (auto_save)
+        {
+            ms_since_last_char_typed = 0;
+        }
+
+        return auto_save;
     }
 
     /// <summary>
@@ -853,6 +903,11 @@ internal class NoteEditor
     {
         if (this.note_path == null) return;
         if (!unsaved_changes) return;
+
+        if (Settings.AutoSave)
+        {
+            ms_since_last_char_typed = 0;
+        }
 
         SaveState();
 
@@ -1286,7 +1341,6 @@ internal class NoteEditor
     private static Dictionary<ConsoleKey, string> tree_ctrl_functions = new Dictionary<ConsoleKey, string>()
     {
         { ConsoleKey.Q, "Quit NoteWorthy" },
-        { ConsoleKey.L, "Toggle focus to the editor" },
         { ConsoleKey.O, "Open current directory in file explorer" },
         { ConsoleKey.UpArrow, "Preview the previous note" },
         { ConsoleKey.DownArrow, "Preview the next note" },
@@ -1321,7 +1375,7 @@ internal class NoteEditor
     private static Dictionary<ConsoleKey, string> editor_ctrl_functions = new Dictionary<ConsoleKey, string>()
     {
         { ConsoleKey.Q, "Quit NoteWorthy" },
-        { ConsoleKey.L, "Toggle focus to the tree (+shift for dash-line)" },
+        { ConsoleKey.L, "Print dashed-line (if line empty)" },
         { ConsoleKey.S, "Save note" },
         { ConsoleKey.R, "Reload note" },
         { ConsoleKey.D, "Delete current line" },
@@ -1354,7 +1408,7 @@ internal class NoteEditor
         { ConsoleKey.Escape, "Unfocus editor / focus tree" },
         { ConsoleKey.Enter, "Insert new line" },
         { ConsoleKey.UpArrow, "Move cursor up" },
-        { ConsoleKey.DownArrow, "Move cursor down (shift+enter)" },
+        { ConsoleKey.DownArrow, "Move cursor down (alias: shift+enter)" },
         { ConsoleKey.LeftArrow, "Move cursor left" },
         { ConsoleKey.RightArrow, "Nove cursor right" },
         { ConsoleKey.End, "Move to end of line" },

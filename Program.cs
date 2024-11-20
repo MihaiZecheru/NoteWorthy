@@ -155,7 +155,18 @@ class Program
         {
             HandleRendering();
 
-            if (!Console.KeyAvailable) continue;
+            if (!Console.KeyAvailable)
+            {
+                // Check for auto save. if auto save is required, save the note. finally, continue.
+                if (editorFocused && noteEditor.CheckIfAutoSaveRequired())
+                {
+                    noteEditor.Save();
+                    Set_NoteEditorRequiresUpdate();
+                }
+
+                continue;
+            }
+
             ConsoleKeyInfo keyInfo = Console.ReadKey(true);
 
             if (editorFocused)
