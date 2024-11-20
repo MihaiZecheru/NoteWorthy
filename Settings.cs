@@ -70,7 +70,7 @@ internal static class Settings
 write_mode=insert // options: insert | overwrite - starting character type behaviour - default: insert
 auto_capitalize_lines=false // true | false - true to capitalize the first letter of each line - default: false
 auto_color_numbers=false // true | false - true to automatically color all numbers in the text with the secondary_color - default: false
-auto_color_variables=false // true | false - true to automatically color all variables (single characters like 'p' or 'c' that are not 'a' or 'i') in the text with the secondary_color - default: false
+auto_color_variables=false // true | false - true to automatically color all variables (single characters like 'x' or 'y' that are not 'a' or 'i' specifically) in the text with the primary_color - default: false
 auto_save=false // true | false - true to automatically save the file after typing - default: false
 
 // color options: https://spectreconsole.net/appendix/colors use the # column to represent the color
