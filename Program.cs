@@ -1572,6 +1572,10 @@ class Program
             {
                 noteEditor.InsertLine(direct_insert: true);
             }
+            if (c == '\t')
+            {
+                noteEditor.InsertTab();
+            }
             else
             {
                 noteEditor.InsertChar(c, direct_insert: true);
