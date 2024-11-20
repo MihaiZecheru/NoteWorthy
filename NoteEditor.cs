@@ -757,8 +757,12 @@ internal class NoteEditor
         // Loop III will stop deleting just one char before the end of the line always, because if it's at the end of the line,
         // the last character can't be a space. Therefore, if the end of the word is at the end of the line, account for that.
 
-        // However, if the word is a single char, like the word 'a', it shouldn't do that. So, also check if the 2nd-last char is a space before account for Loop III
-        if (end_of_word == GetCharsInLine() - 1 && lines[line_num][end_of_word - 1] != ' ') end_of_word++;
+        // However, if the word is a single char, like the word 'a', it shouldn't do that. So, also check if the 2nd-last char is a space before accounting for Loop III
+        if (end_of_word == lines[line_num].Count - 1 && end_of_word >= 1 && lines[line_num][end_of_word - 1] != ' ') end_of_word++;
+
+        // If there is only one char to the end with no space following it, the end of word will equal the pos_in_line, meaning that
+        // it there is no word. However, if the end_of_word is prior to the end of the line, then there is a word and it just wasn't caught
+        if (end_of_word == pos_in_line && end_of_word < lines[line_num].Count) end_of_word = lines[line_num].Count;
 
         return end_of_word;
     }
@@ -1618,6 +1622,19 @@ internal class NoteEditor
         else
         {
             int index = FindIndexOf_EndOfNextWord();
+            
+            // Edge case for "blah blah {" where the curly brace wasn't getting picked up when the cursor was at that last space right before
+            // the brace due to FindIndexOf_EndOfNextWord() returning the same position
+            //if (index == pos_in_line && pos_in_line == GetCharsInLine() - 1)
+            //{
+            //    lines[line_num][GetCharsInLine() - 1].ToggleHighlighting();
+            //    if (OnLastLine()) return;
+            //    line_num++;
+            //    pos_in_line = 0;
+            //    return;
+            //}
+
+            // Toggle highlighting
             for (int i = pos_in_line; i < index; i++)
             {
                 lines[line_num][i].ToggleHighlighting();
