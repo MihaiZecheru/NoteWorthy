@@ -30,7 +30,7 @@ Ctrl+N - Create new note
 Ctrl+M - Create new folder
 Ctrl+R - Reload the tree
 Ctrl+D - Delete the selected tree item
-Ctrl+8 - Open the settings file
+Ctrl+8 - Open the settings file (+shift to reload it)
 Ctrl+1 - Toggle tree visibility
 Ctrl+H - Toggle this help panel
 
@@ -51,7 +51,7 @@ Backspace - Delete the selected tree file/folder
 
 ## Editor
 Ctrl+Q - Quit NoteWorthy
-Ctrl+L - Toggle focus to the tree
+Ctrl+L - Print dashed-line (if line empty)
 Ctrl+S - Save the note
 Ctrl+D - Delete current line
 Ctrl+W - Close the editor
@@ -67,12 +67,12 @@ Ctrl+Delete - Delete word (to the right)
 Ctrl+N - Create new note
 Ctrl+M - Create new folder
 Ctrl+O - Open current directory in file explorer
-Ctrl+8 - Open the settings file
+Ctrl+8 - Open the settings file (+shift to reload it)
 Ctrl+UpArrow - Preview the previous note
 Ctrl+DownArrow - Preview the next note
-Ctrl+B - Toggle primary color
-Ctrl+U - Toggle secondary color
-Ctrl+I - Toggle this help panel
+Ctrl+B - Toggle primary color (+shift for activating the color for just one char)
+Ctrl+U - Toggle secondary color (+shift for activating the color for just one char)
+Ctrl+I - Toggle tertiary color (+shift for activating the color for just one char)
 Ctrl+1 - Toggle tree visibility
 Ctrl+G - Toggle line numbers
 Ctrl+H - Toggle this help panel
@@ -80,7 +80,7 @@ Ctrl+H - Toggle this help panel
 Escape - Unfocus editor / focus tree
 Enter - Insert new line
 UpArrow - Move cursor up
-DownArrow - Move cursor down
+DownArrow - Move cursor down (alias: shift+enter)
 LeftArrow - Move cursor left
 RightArrow - Move cursor right
 End - Move cursor to the end of the line
@@ -90,3 +90,7 @@ Backspace - Delete character
 Delete - Delete character (to the right)
 F2 - Rename the current note
 Tab - Insert tab
+
+Notes:
+A dash and a space on an empty line will auto-indent
+If auto-capitalize is on and you don't want the first character to be capitalized, hold shift while typing the first char to make it lowercase

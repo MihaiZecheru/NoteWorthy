@@ -256,17 +256,6 @@ class Program
                     ExitApplication();
                     break;
 
-                // Ctrl+L - Toggle focus to the editor
-                case ConsoleKey.L:
-                    if (noteEditor.GetNotePath() == null) break;
-                    if (noteEditor.IsTypingDisabled()) break;
-                    editorFocused = true;
-                    AnsiConsole.Cursor.Show();
-                    noteTree.Set_RequiresUpdate();
-                    Set_NoteEditorRequiresUpdate();
-                    SetTreeFooterRequiresUpdate();
-                    break;
-
                 // Ctrl+O - Open the currently selected dir in the file explorer
                 case ConsoleKey.O:
                     string path = noteTree.GetSelectedTreeItem()?.Parent == null ? NOTES_DIR_PATH : noteTree.GetSelectedTreeItem()!.Parent!.FilePath;
@@ -497,23 +486,11 @@ class Program
                     ExitApplication();
                     break;
 
-                // Ctrl+L - Toggle focus to the tree
-                // Ctrl+Shift+L - Insert dashed line
+                // Ctrl+L - Insert dashed line
                 case ConsoleKey.L:
-                    if (keyInfo.Modifiers.HasFlag(ConsoleModifiers.Shift))
-                    {
-                        noteEditor.InsertDashedLine();
-                        Set_NoteEditorRequiresUpdate();
-                        SetTreeFooterRequiresUpdate();
-                    }
-                    else
-                    {
-                        editorFocused = false;
-                        AnsiConsole.Cursor.Hide();
-                        Set_NoteEditorRequiresUpdate();
-                        noteTree.Set_RequiresUpdate();
-                        SetTreeFooterRequiresUpdate();
-                    }
+                    noteEditor.InsertDashedLine();
+                    Set_NoteEditorRequiresUpdate();
+                    SetTreeFooterRequiresUpdate();
                     break;
 
                 // Ctrl+S - Save note
