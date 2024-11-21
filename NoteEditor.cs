@@ -447,6 +447,8 @@ internal class NoteEditor
             &&
             GetSpacesCountInLine(curr_line) == 0
             &&
+            curr_line.Count >= 1
+            &&
             char.IsAsciiLetterLower(curr_line[0].Char)
         )
         {
@@ -1845,7 +1847,7 @@ internal class NoteEditor
 
     public void HighlightWholeNote()
     {
-        for (int i = 0; i < lines.Count; i++)
+        for (int i = 0; i < lines.Count - 1; i++)
         {
             for (int j = 0; j < lines[i].Count; j++)
             {
