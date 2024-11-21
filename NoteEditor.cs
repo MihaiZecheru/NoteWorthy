@@ -21,6 +21,11 @@ internal class NoteEditor
     private List<List<ColorChar>> lines;
 
     /// <summary>
+    /// The current line. curr_line
+    /// </summary>
+    private List<ColorChar> curr_line { get => curr_line; set => lines[line_num] = value; }
+
+    /// <summary>
     /// The history of the note. Used for undoing changes with Ctrl+Z.
     /// Keeps track of the note's state every 10 characters.
     /// Will only track the past 75 states.
@@ -263,34 +268,34 @@ internal class NoteEditor
 
         if (AtEndOfLine())
         {
-            List<char> line_chars = lines[line_num].Select(l => l.Char).ToList();
+            List<char> line_chars = curr_line.Select(l => l.Char).ToList();
 
             // Auto-capitalization check
             // Only auto-capitalize in the event of an 'enter' keypress when there is only one word written on the line, because then a space wouldn't have been pressed which is where the word typically gets capitalized
-            if (Settings.AutoCapitalizeLines && GetSpacesCountInLine(lines[line_num]) == 0 && lines[line_num].Count >= 1 && char.IsAsciiLetterLower(lines[line_num][0].Char) && lines[line_num][0].Char != ' ')
+            if (Settings.AutoCapitalizeLines && GetSpacesCountInLine(curr_line) == 0 && curr_line.Count >= 1 && char.IsAsciiLetterLower(curr_line[0].Char) && curr_line[0].Char != ' ')
             {
-                lines[line_num][0].Char = char.ToUpper(lines[line_num][0].Char);
+                curr_line[0].Char = char.ToUpper(curr_line[0].Char);
                 auto_capitalization_info = ((line_num, 0), true);
                 reset_auto_capitalization_info = false;
             }
             // Auto-capitalize 'i' check
             // If enter is pressed when the last two chars are ' i' then auto capitalize i
-            else if (Settings.AutoCapitalizeLines && lines[line_num].Count >= 2 && lines[line_num][pos_in_line - 1] == 'i' && lines[line_num][pos_in_line - 2] == ' ')
+            else if (Settings.AutoCapitalizeLines && curr_line.Count >= 2 && curr_line[pos_in_line - 1] == 'i' && curr_line[pos_in_line - 2] == ' ')
             {
-                lines[line_num][pos_in_line - 1].Char = 'I';
+                curr_line[pos_in_line - 1].Char = 'I';
                 auto_capitalization_info = ((line_num, pos_in_line - 1), true);
                 reset_auto_capitalization_info = false;
             }
 
             // If the current line is indented + dash + space, the new line will be indented with a dash + space too
             // Ex, if it starts with this: "    - "
-            if (!direct_insert && lines[line_num].Count >= 6 && lines[line_num][0] == ' ' && lines[line_num][1] == ' ' && lines[line_num][2] == ' ' && lines[line_num][3] == ' ' && lines[line_num][4] == '-' && lines[line_num][5] == ' ')
+            if (!direct_insert && curr_line.Count >= 6 && curr_line[0] == ' ' && curr_line[1] == ' ' && curr_line[2] == ' ' && curr_line[3] == ' ' && curr_line[4] == '-' && curr_line[5] == ' ')
             {
                 // If enter is pressed when the line is just a dash + space, delete the dash + space in that line.
-                if (lines[line_num].Count == 6)
+                if (curr_line.Count == 6)
                 {
                     // Clear current line
-                    lines[line_num] = new();
+                    curr_line = new();
                     pos_in_line = 0;
                     return;
                 }
@@ -308,7 +313,7 @@ internal class NoteEditor
             // Vocab definitions are detected when there is a colon followed by a space in the line
             // the line is also within 9 chars of being full
             // The : cannot be the first character
-            else if (!direct_insert && line_chars.Count >= BUFFER_WIDTH - 9 && line_chars.IndexOf(':') != 0 && line_chars.Contains(':') && lines[line_num][line_chars.IndexOf(':') + 1] == ' ')
+            else if (!direct_insert && line_chars.Count >= BUFFER_WIDTH - 9 && line_chars.IndexOf(':') != 0 && line_chars.Contains(':') && curr_line[line_chars.IndexOf(':') + 1] == ' ')
             {
                 ColorChar space_char = new((byte)' ', 0);
 
@@ -331,7 +336,7 @@ internal class NoteEditor
             else if (!direct_insert && line_chars.All(c => c == ' '))
             {
                 // Clear current line
-                lines[line_num] = new();
+                curr_line = new();
                 // Add new empty line
                 lines.Insert(line_num + 1, new());
                 pos_in_line = 0;
@@ -341,7 +346,7 @@ internal class NoteEditor
             else if (!direct_insert && line_chars.Count > 4 && line_chars[0] == ' ' && line_chars[1] == ' ' && line_chars[2] == ' ' && line_chars[3] == ' ')
             {
                 ColorChar space_char = new((byte)' ', 0);
-                int spaces_to_add = GetLeadingSpacesCount(new string(lines[line_num].Select(c => c.Char).ToArray()));
+                int spaces_to_add = GetLeadingSpacesCount(new string(curr_line.Select(c => c.Char).ToArray()));
 
                 lines.Insert(line_num + 1, new());
 
@@ -364,11 +369,11 @@ internal class NoteEditor
             AnsiConsole.Cursor.Hide();
 
             // Pressing enter while not at the end of the line will take the text to the right of the cursor and move it to the newly-created line
-            List<ColorChar> current_line = lines[line_num].Slice(0, pos_in_line);
-            List<ColorChar> newline = lines[line_num].Slice(pos_in_line, lines[line_num].Count - pos_in_line);
+            List<ColorChar> current_line = curr_line.Slice(0, pos_in_line);
+            List<ColorChar> newline = curr_line.Slice(pos_in_line, curr_line.Count - pos_in_line);
 
             // Rewrite current line and append the new line
-            lines[line_num] = current_line;
+            curr_line = current_line;
             lines.Insert(line_num + 1, newline);
 
             // Move cursor to beginning of new line
@@ -435,13 +440,13 @@ internal class NoteEditor
             &&
             c == ' '
             &&
-            GetSpacesCountInLine(lines[line_num]) == 0
+            GetSpacesCountInLine(curr_line) == 0
             &&
-            char.IsAsciiLetterLower(lines[line_num][0].Char)
+            char.IsAsciiLetterLower(curr_line[0].Char)
         )
         {
             // Capitalize the first char in the line
-            lines[line_num][0].Char = char.ToUpper(lines[line_num][0].Char);
+            curr_line[0].Char = char.ToUpper(curr_line[0].Char);
             auto_capitalization_info = ((line_num, 0), true);
             reset_auto_capitalization_info = false;
         }
@@ -453,11 +458,11 @@ internal class NoteEditor
             &&
             c == ' '
             &&
-            lines[line_num].Count >= 7 && lines[line_num][0] == ' ' && lines[line_num][1] == ' ' && lines[line_num][2] == ' ' && lines[line_num][3] == ' ' && lines[line_num][4] == '-' && lines[line_num][5] == ' '
-            && GetSpacesCountInLine(lines[line_num]) == 5 // checking for if this space is the first space not including the spaces in "    - "
+            curr_line.Count >= 7 && curr_line[0] == ' ' && curr_line[1] == ' ' && curr_line[2] == ' ' && curr_line[3] == ' ' && curr_line[4] == '-' && curr_line[5] == ' '
+            && GetSpacesCountInLine(curr_line) == 5 // checking for if this space is the first space not including the spaces in "    - "
         )
         {
-            lines[line_num][6].Char = char.ToUpper(lines[line_num][6].Char);
+            curr_line[6].Char = char.ToUpper(curr_line[6].Char);
             auto_capitalization_info = ((line_num, 6), true);
             reset_auto_capitalization_info = false;
         }
@@ -469,14 +474,14 @@ internal class NoteEditor
             &&
             c == ' '
             &&
-            lines[line_num].Count >= 3
+            curr_line.Count >= 3
             &&
-            lines[line_num][pos_in_line - 1] == 'i'
+            curr_line[pos_in_line - 1] == 'i'
             &&
-            lines[line_num][pos_in_line - 2] == ' '
+            curr_line[pos_in_line - 2] == ' '
         )
         {
-            lines[line_num][pos_in_line - 1].Char = 'I';
+            curr_line[pos_in_line - 1].Char = 'I';
             auto_capitalization_info = ((line_num, pos_in_line - 1), true);
             reset_auto_capitalization_info = false;
         }
@@ -508,19 +513,19 @@ internal class NoteEditor
             }
             // If AutoColorVariables is on and the char is a space, and two chars before is a space, then make one char before have the PrimaryColor as specified in the settings file
             // ex: " x " the x becomes colored
-            else if (Settings.AutoColorVariables && lines[line_num].Count >= 1 && pos_in_line >= 1 && (c == ' ' || char.IsSymbol(c)) && lines[line_num][pos_in_line - 1].Char != ' ' && (pos_in_line - 1 == 0 || lines[line_num][pos_in_line - 2] == ' ' || char.IsSymbol(lines[line_num][pos_in_line - 2].Char)) && char.IsAsciiLetter(lines[line_num][pos_in_line - 1].Char))
+            else if (Settings.AutoColorVariables && curr_line.Count >= 1 && pos_in_line >= 1 && (c == ' ' || char.IsSymbol(c)) && curr_line[pos_in_line - 1].Char != ' ' && (pos_in_line - 1 == 0 || curr_line[pos_in_line - 2] == ' ' || char.IsSymbol(curr_line[pos_in_line - 2].Char)) && char.IsAsciiLetter(curr_line[pos_in_line - 1].Char))
             {
                 // The space that was typed
                 _char = new ColorChar((byte)c, 0);
 
                 // Changing the color of the previous variable
-                char char_to_color = lines[line_num][pos_in_line - 1].Char;
+                char char_to_color = curr_line[pos_in_line - 1].Char;
 
                 // Do not color 'A', 'a', 'I', or 'i'
                 if (char.ToLower(char_to_color) != 'a' && char.ToLower(char_to_color) != 'i')
                 {
                     // Replace the variable with a colored version of the char
-                    lines[line_num][pos_in_line - 1] = new ColorChar((byte)char_to_color, Settings.PrimaryColor);
+                    curr_line[pos_in_line - 1] = new ColorChar((byte)char_to_color, Settings.PrimaryColor);
                 }
             }
             // Add the char with no color
@@ -539,10 +544,10 @@ internal class NoteEditor
 
             // Before adding the char, check for the dash + space indent thing.
             // If a dash then a space is typed and the line prior contains text (isn't empty), the dash will automatically be tabbed
-            if (!direct_insert && lines[line_num].Count == 1 && lines[line_num][0] == '-' && c == ' ' && line_num >= 1 && lines[line_num - 1].Count != 0)
+            if (!direct_insert && curr_line.Count == 1 && curr_line[0] == '-' && c == ' ' && line_num >= 1 && lines[line_num - 1].Count != 0)
             {
                 // _char is a space here
-                lines[line_num] = new List<ColorChar>()
+                curr_line = new List<ColorChar>()
                 {
                     _char, _char, _char, _char, new ColorChar((byte)'-', 0), _char
                 };
@@ -551,7 +556,7 @@ internal class NoteEditor
             else
             {
                 // Add char normally
-                lines[line_num].Add(_char);
+                curr_line.Add(_char);
             }
         }
         else
@@ -559,12 +564,12 @@ internal class NoteEditor
             if (insertModeOn)
             {
                 // Insert the char at the current position
-                lines[line_num].Insert(pos_in_line, _char);
+                curr_line.Insert(pos_in_line, _char);
             }
             else
             {
                 // Overwrite the char at the current positon
-                lines[line_num][pos_in_line] = _char;
+                curr_line[pos_in_line] = _char;
             }
         }
 
@@ -572,7 +577,7 @@ internal class NoteEditor
         // If the char to insert is a space, check for a possible vocab definition (FOR Settings.AutoColorVocabDefinitions)
         // Vocab definitions are detected when there is a colon followed by a space in the line prior to the halfway-point of the line 
         // The : cannot be the first character
-        List<char> line_chars = lines[line_num].Select(l => l.Char).ToList();
+        List<char> line_chars = curr_line.Select(l => l.Char).ToList();
         if (Settings.AutoColorVocabDefinitions && c == ' ' && line_chars.Count >= 3 && line_chars.Contains(':') && line_chars.IndexOf(':') != 0 && line_chars.IndexOf(':') <= BUFFER_WIDTH / 3)
         {
             int tmp = pos_in_line;
@@ -581,7 +586,7 @@ internal class NoteEditor
             // Color the colon
             for (int i = 0; i < colon_index; i++)
             {
-                lines[line_num][i] = new ColorChar((byte)lines[line_num][i].Char, Settings.PrimaryColor);
+                curr_line[i] = new ColorChar((byte)curr_line[i].Char, Settings.PrimaryColor);
             }
 
             pos_in_line = tmp;
@@ -692,7 +697,7 @@ internal class NoteEditor
         {
             if (OnFirstLine()) return;
             int prev_line_length = LineLength(line_num - 1);
-            lines[line_num - 1].AddRange(lines[line_num]);
+            lines[line_num - 1].AddRange(curr_line);
             lines.RemoveAt(line_num);
             line_num--;
             pos_in_line = prev_line_length;
@@ -701,28 +706,28 @@ internal class NoteEditor
         else
         {
             // Check if line is equal to "    - " and the cursor is at the end of the line. If true, delete the whole line
-            if (lines[line_num].Count == 6 && lines[line_num][0] == ' ' && lines[line_num][1] == ' ' && lines[line_num][2] == ' ' && lines[line_num][3] == ' ' && lines[line_num][4] == '-' && lines[line_num][5] == ' ')
+            if (curr_line.Count == 6 && curr_line[0] == ' ' && curr_line[1] == ' ' && curr_line[2] == ' ' && curr_line[3] == ' ' && curr_line[4] == '-' && curr_line[5] == ' ')
             {
-                lines[line_num] = new();
+                curr_line = new();
                 pos_in_line = 0;
             }
             // Check if the entire line is spaces. If so, clear proceeding spaces
-            else if (AtEndOfLine() && lines[line_num].All(c => c == ' '))
+            else if (AtEndOfLine() && curr_line.All(c => c == ' '))
             {
                 // Clear spaces
-                lines[line_num] = new();
+                curr_line = new();
                 pos_in_line = 0;
             }
             // Check if the cursor is at the end of the line and the previous four chars make a tab. If true, delete the tab
-            else if (lines[line_num].Count >= 4 && pos_in_line >= 4 && lines[line_num][pos_in_line - 1] == ' ' && lines[line_num][pos_in_line - 2] == ' ' && lines[line_num][pos_in_line - 3] == ' ' && lines[line_num][pos_in_line - 4] == ' ')
+            else if (curr_line.Count >= 4 && pos_in_line >= 4 && curr_line[pos_in_line - 1] == ' ' && curr_line[pos_in_line - 2] == ' ' && curr_line[pos_in_line - 3] == ' ' && curr_line[pos_in_line - 4] == ' ')
             {
-                lines[line_num].RemoveRange(pos_in_line - 4, 4);
+                curr_line.RemoveRange(pos_in_line - 4, 4);
                 pos_in_line -= 4;
             }
             // Delete the char normally
             else
             {
-                lines[line_num].RemoveAt(pos_in_line - 1);
+                curr_line.RemoveAt(pos_in_line - 1);
                 pos_in_line--;
             }
         }
@@ -745,12 +750,12 @@ internal class NoteEditor
         if (AtEndOfLine())
         {
             if (OnLastLine()) return;
-            lines[line_num].AddRange(lines[line_num + 1]);
+            curr_line.AddRange(lines[line_num + 1]);
             lines.RemoveAt(line_num + 1);
         }
         else
         {
-            lines[line_num].RemoveAt(pos_in_line);
+            curr_line.RemoveAt(pos_in_line);
         }
 
         Set_unsaved_changes();
@@ -776,7 +781,7 @@ internal class NoteEditor
 
             if (OnFirstLine()) return;
             int prev_line_length = LineLength(line_num - 1);
-            lines[line_num - 1].AddRange(lines[line_num]);
+            lines[line_num - 1].AddRange(curr_line);
             lines.RemoveAt(line_num);
             line_num--;
             pos_in_line = prev_line_length;
@@ -787,7 +792,7 @@ internal class NoteEditor
             // Leave the space at the end of the word
             if (start_of_word != 0) start_of_word++;
             // Delete word
-            lines[line_num].RemoveRange(start_of_word, pos_in_line - start_of_word);
+            curr_line.RemoveRange(start_of_word, pos_in_line - start_of_word);
             pos_in_line = start_of_word;
         }
 
@@ -813,13 +818,13 @@ internal class NoteEditor
             // Instead, delete the current line and append it to the next line
 
             if (OnLastLine()) return;
-            lines[line_num].AddRange(lines[line_num + 1]);
+            curr_line.AddRange(lines[line_num + 1]);
             lines.RemoveAt(line_num + 1);
         }
         else
         {
             int end_of_word = FindIndexOf_EndOfNextWord();
-            lines[line_num].RemoveRange(pos_in_line, end_of_word - pos_in_line);
+            curr_line.RemoveRange(pos_in_line, end_of_word - pos_in_line);
             // pos_in_line does not have to be modified because the word to the RIGHT of the cursor is deleted
         }
 
@@ -854,19 +859,19 @@ internal class NoteEditor
         int end_of_word = pos_in_line;
 
         // Loop I: Clear duplicate spaces at the beginning of the word (left side of the word)
-        while (end_of_word < lines[line_num].Count - 1 && lines[line_num][end_of_word] == ' ')
+        while (end_of_word < curr_line.Count - 1 && curr_line[end_of_word] == ' ')
         {
             end_of_word++;
         }
 
         // Loop II: Clear the word (all text up until the next space)
-        while (end_of_word < lines[line_num].Count - 1 && lines[line_num][end_of_word] != ' ')
+        while (end_of_word < curr_line.Count - 1 && curr_line[end_of_word] != ' ')
         {
             end_of_word++;
         }
 
         // Loop III: Clear duplicate spaces at the end of the word (right side of the word)
-        while (end_of_word < lines[line_num].Count && lines[line_num][end_of_word] == ' ')
+        while (end_of_word < curr_line.Count && curr_line[end_of_word] == ' ')
         {
             end_of_word++;
         }
@@ -875,11 +880,11 @@ internal class NoteEditor
         // the last character can't be a space. Therefore, if the end of the word is at the end of the line, account for that.
 
         // However, if the word is a single char, like the word 'a', it shouldn't do that. So, also check if the 2nd-last char is a space before accounting for Loop III
-        if (end_of_word == lines[line_num].Count - 1 && end_of_word >= 1 && lines[line_num][end_of_word - 1] != ' ') end_of_word++;
+        if (end_of_word == curr_line.Count - 1 && end_of_word >= 1 && curr_line[end_of_word - 1] != ' ') end_of_word++;
 
         // If there is only one char to the end with no space following it, the end of word will equal the pos_in_line, meaning that
         // it there is no word. However, if the end_of_word is prior to the end of the line, then there is a word and it just wasn't caught
-        if (end_of_word == pos_in_line && end_of_word < lines[line_num].Count) end_of_word = lines[line_num].Count;
+        if (end_of_word == pos_in_line && end_of_word < curr_line.Count) end_of_word = curr_line.Count;
 
         return end_of_word;
     }
@@ -900,19 +905,19 @@ internal class NoteEditor
         int start_of_word = pos_in_line - 1;
 
         // Loop I: Clear duplicate spaces at the end of the word (right side of the word)
-        while (start_of_word > 0 && lines[line_num][start_of_word] == ' ')
+        while (start_of_word > 0 && curr_line[start_of_word] == ' ')
         {
             start_of_word--;
         }
 
         // Loop II: Clear the word (all text up until the next space)
-        while (start_of_word > 0 && lines[line_num][start_of_word] != ' ')
+        while (start_of_word > 0 && curr_line[start_of_word] != ' ')
         {
             start_of_word--;
         }
 
         // Loop III: Clear duplicate spaces at the beginning of the word (left side of the word)
-        while (start_of_word > 0 && lines[line_num][start_of_word] == ' ')
+        while (start_of_word > 0 && curr_line[start_of_word] == ' ')
         {
             start_of_word--;
         }
@@ -1021,7 +1026,7 @@ internal class NoteEditor
     private bool AtEndOfLine()
     {
         // Does not use .Count - 1 because the cursor goes after the last char
-        return pos_in_line == lines[line_num].Count;
+        return pos_in_line == curr_line.Count;
     }
 
     /// <summary>
@@ -1044,12 +1049,12 @@ internal class NoteEditor
     /// </summary>
     private bool LineIsFull()
     {
-        return lines[line_num].Count == BUFFER_WIDTH;
+        return curr_line.Count == BUFFER_WIDTH;
     }
 
     private bool LineIsEmpty()
     {
-        return lines[line_num].Count == 0;
+        return curr_line.Count == 0;
     }
 
     /// <summary>
@@ -1059,7 +1064,7 @@ internal class NoteEditor
     /// <returns></returns>
     private int GetCharsInLine()
     {
-        return lines[line_num].Count;
+        return curr_line.Count;
     }
 
     /// <summary>
@@ -1169,9 +1174,9 @@ internal class NoteEditor
         if (OnFirstLine()) return;
 
         line_num--;
-        if (pos_in_line > lines[line_num].Count)
+        if (pos_in_line > curr_line.Count)
         {
-            pos_in_line = lines[line_num].Count;
+            pos_in_line = curr_line.Count;
         }
     }
 
@@ -1179,7 +1184,7 @@ internal class NoteEditor
     {
         if (OnLastLine())
         {
-            int end_of_line = lines[line_num].Count;
+            int end_of_line = curr_line.Count;
             if (pos_in_line < end_of_line)
             {
                 pos_in_line = end_of_line;
@@ -1188,7 +1193,7 @@ internal class NoteEditor
         else
         {
             line_num++;
-            if (pos_in_line > lines[line_num].Count)
+            if (pos_in_line > curr_line.Count)
             {
                 pos_in_line = GetCharsInLine();
             }
@@ -1230,7 +1235,7 @@ internal class NoteEditor
 
     public void MoveCursorToEndOfLine()
     {
-        pos_in_line = lines[line_num].Count;
+        pos_in_line = curr_line.Count;
     }
 
     public void MoveCursorToStartOfEditor()
@@ -1242,15 +1247,15 @@ internal class NoteEditor
     public void MoveCursorToEndOfEditor()
     {
         line_num = lines.Count - 1;
-        pos_in_line = lines[line_num].Count;
+        pos_in_line = curr_line.Count;
     }
 
     public void MoveLineUp()
     {
         if (OnFirstLine()) return;
 
-        List<ColorChar> temp = lines[line_num];
-        lines[line_num] = lines[line_num - 1];
+        List<ColorChar> temp = curr_line;
+        curr_line = lines[line_num - 1];
         lines[line_num - 1] = temp;
 
         line_num--;
@@ -1261,8 +1266,8 @@ internal class NoteEditor
     {
         if (OnLastLine()) return;
 
-        List<ColorChar> temp = lines[line_num];
-        lines[line_num] = lines[line_num + 1];
+        List<ColorChar> temp = curr_line;
+        curr_line = lines[line_num + 1];
         lines[line_num + 1] = temp;
 
         line_num++;
@@ -1525,7 +1530,7 @@ internal class NoteEditor
         // Insert tab normally
 
         int size = 4;
-        bool tab_fits = lines[line_num].Count <= BUFFER_WIDTH - 4;
+        bool tab_fits = curr_line.Count <= BUFFER_WIDTH - 4;
 
         // Check early return conditions
         if (insertModeOn)
@@ -1724,7 +1729,7 @@ internal class NoteEditor
     {
         if (!LineIsEmpty()) return;
 
-        lines[line_num].AddRange(Enumerable.Repeat(new ColorChar((byte)'-', 0), BUFFER_WIDTH));
+        curr_line.AddRange(Enumerable.Repeat(new ColorChar((byte)'-', 0), BUFFER_WIDTH));
         pos_in_line = BUFFER_WIDTH;
         Set_unsaved_changes();
     }
@@ -1747,7 +1752,7 @@ internal class NoteEditor
             // the brace due to FindIndexOf_EndOfNextWord() returning the same position
             //if (index == pos_in_line && pos_in_line == GetCharsInLine() - 1)
             //{
-            //    lines[line_num][GetCharsInLine() - 1].ToggleHighlighting();
+            //    curr_line[GetCharsInLine() - 1].ToggleHighlighting();
             //    if (OnLastLine()) return;
             //    line_num++;
             //    pos_in_line = 0;
@@ -1757,7 +1762,7 @@ internal class NoteEditor
             // Toggle highlighting
             for (int i = pos_in_line; i < index; i++)
             {
-                lines[line_num][i].ToggleHighlighting();
+                curr_line[i].ToggleHighlighting();
             }
             pos_in_line = index;
         }
@@ -1776,7 +1781,7 @@ internal class NoteEditor
             int index = FindIndexOf_StartOfPreviousWord();
             for (int i = index; i < pos_in_line; i++)
             {
-                lines[line_num][i].ToggleHighlighting();
+                curr_line[i].ToggleHighlighting();
             }
             pos_in_line = index;
         }
@@ -1844,7 +1849,7 @@ internal class NoteEditor
         }
 
         line_num = lines.Count - 1;
-        pos_in_line = lines[line_num].Count;
+        pos_in_line = curr_line.Count;
     }
 
     public void HighlightPreviousChar()
@@ -1857,7 +1862,7 @@ internal class NoteEditor
         }
         else
         {
-            lines[line_num][pos_in_line - 1].ToggleHighlighting();
+            curr_line[pos_in_line - 1].ToggleHighlighting();
             pos_in_line--;
         }
     }
@@ -1872,26 +1877,26 @@ internal class NoteEditor
         }
         else
         {
-            lines[line_num][pos_in_line].ToggleHighlighting();
+            curr_line[pos_in_line].ToggleHighlighting();
             pos_in_line++;
         }
     }
 
     public void HighlightToEndOfLine()
     {
-        for (int i = pos_in_line; i < lines[line_num].Count; i++)
+        for (int i = pos_in_line; i < curr_line.Count; i++)
         {
-            lines[line_num][i].ToggleHighlighting();
+            curr_line[i].ToggleHighlighting();
         }
 
-        pos_in_line = lines[line_num].Count;
+        pos_in_line = curr_line.Count;
     }
 
     public void HighlightToStartOfLine()
     {
         for (int i = 0; i < pos_in_line; i++)
         {
-            lines[line_num][i].ToggleHighlighting();
+            curr_line[i].ToggleHighlighting();
         }
 
         pos_in_line = 0;
