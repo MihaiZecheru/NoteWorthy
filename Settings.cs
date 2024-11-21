@@ -67,27 +67,39 @@ internal static class Settings
         File.WriteAllText(file_path, @"// Note: all settings are case sensitive. If an invalid value is provided, the default will be used
 // Do not touch the comments
 
+// -------------------------
 // General settings
+// -------------------------
 
 // options: insert | overwrite - starting character type behaviour - default: insert
 write_mode=insert
+
 // true | false - true to capitalize the first letter of each line - default: false
 auto_capitalize_lines=false
+
 // true | false - true to automatically color all numbers in the text with the secondary_color - default: false
 auto_color_numbers=false
+
 // true | false - true to automatically color all variables (single characters like 'x' or 'y' that are not 'a' or 'i' specifically) in the text with the primary_color - default: false
 auto_color_variables=false
+
 // true | false - true to automatically color the vocab definitions in the text with the primary_color - default: false
+// ex - key: value - 'key' would be colored automatically when the semicolon and space are typed
 auto_color_vocab_definitions=false
+
 // true | false - true to automatically save the file after typing - default: false
 auto_save=false
 
+// -------------------------
 // color options: https://spectreconsole.net/appendix/colors use the # column to represent the color
+// -------------------------
 
 // custom text color for ctrl+b - default: 12 (blue)
 primary_color=12
+
 // custom text color for ctrl+u - default: 2 (green)
 secondary_color=2
+
 // custom text color for ctrl+i - default: 9 (red)
 tertiary_color=9
 ");
