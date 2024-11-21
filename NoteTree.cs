@@ -328,11 +328,29 @@ internal class NoteTree
 
         if (selected_tree_item.IsDir)
         {
-            Directory.Move(selected_tree_item.FilePath, Path.Combine(Program.RECYCLE_BIN_PATH, $"{selected_tree_item.Name}-{DateTime.Now.ToString("yyyy-MM-dd")}"));
+            // If the directory is empty, delete it
+            if (Directory.EnumerateFileSystemEntries(selected_tree_item.FilePath).Count() == 0)
+            {
+                Directory.Delete(selected_tree_item.FilePath);
+            }
+            // Otherwise, delete it but preserve it in the recycle bin
+            else
+            {
+                Directory.Move(selected_tree_item.FilePath, Path.Combine(Program.RECYCLE_BIN_PATH, $"{selected_tree_item.Name}-{DateTime.Now.ToString("yyyy-MM-dd")}"));
+            }
         }
         else
         {
-            File.Move(selected_tree_item.FilePath, Path.Combine(Program.RECYCLE_BIN_PATH, $"{selected_tree_item.Name.Substring(0, selected_tree_item.Name.Length - 3)}-{DateTime.Now.ToString("yyyy-MM-dd")}.nw"));
+            // If the file is empty, delete it
+            if (new FileInfo(selected_tree_item.FilePath).Length == 0)
+            {
+                File.Delete(selected_tree_item.FilePath);
+            }
+            // Otherwise, delete it but preserve it in the recycle bin
+            else
+            {
+                File.Move(selected_tree_item.FilePath, Path.Combine(Program.RECYCLE_BIN_PATH, $"{selected_tree_item.Name.Substring(0, selected_tree_item.Name.Length - 3)}-{DateTime.Now.ToString("yyyy-MM-dd")}.nw"));
+            }
         }
 
         if (current_parent_treeItem == null)
