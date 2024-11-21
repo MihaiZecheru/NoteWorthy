@@ -23,7 +23,7 @@ internal class NoteEditor
     /// <summary>
     /// The current line. curr_line
     /// </summary>
-    private List<ColorChar> curr_line { get => curr_line; set => lines[line_num] = value; }
+    private List<ColorChar> curr_line { get => lines[line_num]; set => lines[line_num] = value; }
 
     /// <summary>
     /// The history of the note. Used for undoing changes with Ctrl+Z.
