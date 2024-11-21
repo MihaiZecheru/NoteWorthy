@@ -256,11 +256,31 @@ internal class NoteEditor
     /// or anything else. The new line is inserted simply without any other modifications in order to keep the paste pure.</param>
     public void InsertLine(bool direct_insert = false)
     {
+        // True to set auto_capitalization_info.last_change_was_an_auto_capitalization to false at the end.
+        bool reset_auto_capitalization_info = true;
+
         if (lines.Count == BUFFER_HEIGHT) return;
 
         if (AtEndOfLine())
         {
             List<char> line_chars = lines[line_num].Select(l => l.Char).ToList();
+
+            // Auto-capitalization check
+            // Only auto-capitalize in the event of an 'enter' keypress when there is only one word written on the line, because then a space wouldn't have been pressed which is where the word typically gets capitalized
+            if (Settings.AutoCapitalizeLines && GetSpacesCountInLine(lines[line_num]) == 0 && lines[line_num].Count >= 1 && char.IsAsciiLetterLower(lines[line_num][0].Char) && lines[line_num][0].Char != ' ')
+            {
+                lines[line_num][0].Char = char.ToUpper(lines[line_num][0].Char);
+                auto_capitalization_info = ((line_num, 0), true);
+                reset_auto_capitalization_info = false;
+            }
+            // Auto-capitalize 'i' check
+            // If enter is pressed when the last two chars are ' i' then auto capitalize i
+            else if (Settings.AutoCapitalizeLines && lines[line_num].Count >= 2 && lines[line_num][pos_in_line - 1] == 'i' && lines[line_num][pos_in_line - 2] == ' ')
+            {
+                lines[line_num][pos_in_line - 1].Char = 'I';
+                auto_capitalization_info = ((line_num, pos_in_line - 1), true);
+                reset_auto_capitalization_info = false;
+            }
 
             // If the current line is indented + dash + space, the new line will be indented with a dash + space too
             // Ex, if it starts with this: "    - "
@@ -357,6 +377,7 @@ internal class NoteEditor
         }
 
         line_num++;
+        if (reset_auto_capitalization_info) auto_capitalization_info = ((0, 0), false);
         Set_unsaved_changes();
     }
 
@@ -376,15 +397,25 @@ internal class NoteEditor
     }
 
     /// <summary>
+    /// Used so that if the user pressed the backspace after their word was auto-capitalized, it will undo that
+    /// `line` is the line index where the auto-capitalization occurred, and `col` is the pos_in_line when the auto-capitalization occurred
+    /// last_change_was_an_auto_capitalization is true when the very last change to the text in the editor was an auto-capitalization
+    /// </summary>
+    private ((int line, int col), bool last_change_was_an_auto_capitalization ) auto_capitalization_info = ((0, 0), false);
+
+    /// <summary>
     /// Insert <paramref name="c"/> at the current position in the editor.
     /// </summary>
     /// <param name="c">Char to insert</param>
     /// <param name="direct_insert">False by default. True when pasting.
     /// If true, auto-capitalization and indent-matching will be skipped.
     /// The character will be inserted directly without any of the features that are meant for when the user is typing by hand.
-    /// Mofications regarding color will be preserved, i.e. AutoColorNumbers, AutoColorVariables, etc.</param>
+    /// Modifications regarding color will be preserved, i.e. AutoColorNumbers, AutoColorVariables, etc.</param>
     public void InsertChar(char c, bool direct_insert = false)
     {
+        // True to set auto_capitalization_info.last_change_was_an_auto_capitalization to false at the end.
+        bool reset_auto_capitalization_info = true;
+
         if (LineIsFull() && insertModeOn) return;
         // For overwrite mode
         else if (LineIsFull() && AtEndOfLine()) return;
@@ -395,32 +426,59 @@ internal class NoteEditor
             c = RemoveDiacritics(c);
         }
 
-        // Auto-capitalize lines if the setting is on and the char is a letter. The 'or' is for checking for "    - " case
+        // Auto-capitalize the first word if the setting is on and the user just finished typing the word (i.e. if character to insert `c` is the first space in the line)
+        // The 'or' condition is for checking for "    - " case
         if (
             !direct_insert
             &&
             Settings.AutoCapitalizeLines
             &&
-            char.IsAsciiLetter(c)
-            && (
-                AtBeginningOfLine()
-                ||
-                (lines[line_num].Count == 6 && lines[line_num][0] == ' ' && lines[line_num][0] == ' ' && lines[line_num][1] == ' ' && lines[line_num][2] == ' ' && lines[line_num][4] == '-' && lines[line_num][5] == ' ')
-            )
+            c == ' '
+            &&
+            GetSpacesCountInLine(lines[line_num]) == 0
+            &&
+            char.IsAsciiLetterLower(lines[line_num][0].Char)
         )
         {
-            // if shift is pressed, do not make capital. it's like caps locks reversing the case
-
-            // shift not pressed. make capital
-            if (char.ToLower(c) == c)
-            {
-                c = char.ToUpper(c);
-            }
-            // shift pressed. keep lowercase
-            else
-            {
-                c = char.ToLower(c);
-            }
+            // Capitalize the first char in the line
+            lines[line_num][0].Char = char.ToUpper(lines[line_num][0].Char);
+            auto_capitalization_info = ((line_num, 0), true);
+            reset_auto_capitalization_info = false;
+        }
+        // auto-capitalize the first word but when it's after a dash + space ("    - ")
+        else if (
+            !direct_insert
+            &&
+            Settings.AutoCapitalizeLines
+            &&
+            c == ' '
+            &&
+            lines[line_num].Count >= 7 && lines[line_num][0] == ' ' && lines[line_num][1] == ' ' && lines[line_num][2] == ' ' && lines[line_num][3] == ' ' && lines[line_num][4] == '-' && lines[line_num][5] == ' '
+            && GetSpacesCountInLine(lines[line_num]) == 5 // checking for if this space is the first space not including the spaces in "    - "
+        )
+        {
+            lines[line_num][6].Char = char.ToUpper(lines[line_num][6].Char);
+            auto_capitalization_info = ((line_num, 6), true);
+            reset_auto_capitalization_info = false;
+        }
+        // Check to auto-capitalize the letter 'i'. Works when the is proceeds and follows a space, ex: ' i '
+        else if (
+            !direct_insert
+            &&
+            Settings.AutoCapitalizeLines
+            &&
+            c == ' '
+            &&
+            lines[line_num].Count >= 3
+            &&
+            lines[line_num][pos_in_line - 1] == 'i'
+            &&
+            lines[line_num][pos_in_line - 2] == ' '
+        )
+        {
+            lines[line_num][pos_in_line - 1].Char = 'I';
+            auto_capitalization_info = ((line_num, pos_in_line - 1), true);
+            reset_auto_capitalization_info = false;
         }
 
         // Add color to char
@@ -531,6 +589,24 @@ internal class NoteEditor
 
         Set_unsaved_changes();
         pos_in_line++;
+        if (reset_auto_capitalization_info) auto_capitalization_info = ((0, 0), false);
+    }
+
+    /// <summary>
+    /// Get the amount of spaces in <paramref name="line"/>
+    /// </summary>
+    /// <param name="line">A copy of a line in <see cref="lines"/></param>
+    /// <returns>The amount of spaces in <paramref name="line"/></returns>
+    private int GetSpacesCountInLine(List<ColorChar> line)
+    {
+        int spaces_count = 0;
+
+        for (int i = 0; i < line.Count; i++)
+        {
+            if (line[i].Char == ' ') spaces_count++;
+        }
+
+        return spaces_count;
     }
 
     private long ms_since_last_change = 0;
@@ -597,6 +673,15 @@ internal class NoteEditor
     /// </summary>
     public void DeleteCharWithBackspace()
     {
+        if (auto_capitalization_info.last_change_was_an_auto_capitalization)
+        {
+            int y = auto_capitalization_info.Item1.line;
+            int x = auto_capitalization_info.Item1.col;
+            lines[y][x].Char = char.ToLower(lines[y][x].Char);
+            auto_capitalization_info.last_change_was_an_auto_capitalization = false;
+            return;
+        }
+
         if (SomeCharsAreHighlighted())
         {
             DeleteHighlightedChars();
