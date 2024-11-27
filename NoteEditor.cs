@@ -266,7 +266,7 @@ internal class NoteEditor
     /// or anything else. The new line is inserted simply without any other modifications in order to keep the paste pure.</param>
     public void InsertLine(bool direct_insert = false)
     {
-        // True to set auto_capitalization_info.last_change_was_an_auto_capitalization to false at the end.
+        // True to set auto_capitalization_info.last_change_was_an_auto_capitalization_or_auto_color to false at the end.
         bool reset_auto_capitalization_info = true;
 
         if (lines.Count == BUFFER_HEIGHT) return;
@@ -280,7 +280,7 @@ internal class NoteEditor
             if (Settings.AutoCapitalizeLines && GetSpacesCountInLine(curr_line) == 0 && curr_line.Count >= 1 && char.IsAsciiLetterLower(curr_line[0].Char) && curr_line[0].Char != ' ')
             {
                 curr_line[0].Char = char.ToUpper(curr_line[0].Char);
-                auto_capitalization_info = ((line_num, 0), true);
+                auto_capitalization_slash_auto_color_info = ((line_num, 0), true);
                 reset_auto_capitalization_info = false;
             }
             // Auto-capitalize 'i' check
@@ -288,7 +288,7 @@ internal class NoteEditor
             else if (Settings.AutoCapitalizeLines && curr_line.Count >= 2 && curr_line[pos_in_line - 1] == 'i' && curr_line[pos_in_line - 2] == ' ')
             {
                 curr_line[pos_in_line - 1].Char = 'I';
-                auto_capitalization_info = ((line_num, pos_in_line - 1), true);
+                auto_capitalization_slash_auto_color_info = ((line_num, pos_in_line - 1), true);
                 reset_auto_capitalization_info = false;
             }
 
@@ -387,7 +387,8 @@ internal class NoteEditor
         }
 
         line_num++;
-        if (reset_auto_capitalization_info) auto_capitalization_info = ((0, 0), false);
+        if (reset_auto_capitalization_info && auto_capitalization_slash_auto_color_info.last_change_was_an_auto_capitalization_or_auto_color)
+            auto_capitalization_slash_auto_color_info = ((0, 0), false);
         Set_unsaved_changes();
     }
 
@@ -409,9 +410,9 @@ internal class NoteEditor
     /// <summary>
     /// Used so that if the user pressed the backspace after their word was auto-capitalized, it will undo that
     /// `line` is the line index where the auto-capitalization occurred, and `col` is the pos_in_line when the auto-capitalization occurred
-    /// last_change_was_an_auto_capitalization is true when the very last change to the text in the editor was an auto-capitalization
+    /// last_change_was_an_auto_capitalization_or_auto_color is true when the very last change to the text in the editor was an auto-capitalization
     /// </summary>
-    private ((int line, int col), bool last_change_was_an_auto_capitalization ) auto_capitalization_info = ((0, 0), false);
+    private ((int line, int col), bool last_change_was_an_auto_capitalization_or_auto_color) auto_capitalization_slash_auto_color_info = ((0, 0), false);
 
     /// <summary>
     /// Insert <paramref name="c"/> at the current position in the editor.
@@ -423,7 +424,7 @@ internal class NoteEditor
     /// Modifications regarding color will be preserved, i.e. AutoColorNumbers, AutoColorVariables, etc.</param>
     public void InsertChar(char c, bool direct_insert = false)
     {
-        // True to set auto_capitalization_info.last_change_was_an_auto_capitalization to false at the end.
+        // True to set auto_capitalization_info.last_change_was_an_auto_capitalization_or_auto_color to false at the end.
         bool reset_auto_capitalization_info = true;
 
         if (LineIsFull() && insertModeOn) return;
@@ -454,7 +455,7 @@ internal class NoteEditor
         {
             // Capitalize the first char in the line
             curr_line[0].Char = char.ToUpper(curr_line[0].Char);
-            auto_capitalization_info = ((line_num, 0), true);
+            auto_capitalization_slash_auto_color_info = ((line_num, 0), true);
             reset_auto_capitalization_info = false;
         }
         // auto-capitalize the first word but when it's after a dash + space ("    - ")
@@ -470,7 +471,7 @@ internal class NoteEditor
         )
         {
             curr_line[6].Char = char.ToUpper(curr_line[6].Char);
-            auto_capitalization_info = ((line_num, 6), true);
+            auto_capitalization_slash_auto_color_info = ((line_num, 6), true);
             reset_auto_capitalization_info = false;
         }
         // Check to auto-capitalize the letter 'i'. Works when the is proceeds and follows a space, ex: ' i '
@@ -489,7 +490,7 @@ internal class NoteEditor
         )
         {
             curr_line[pos_in_line - 1].Char = 'I';
-            auto_capitalization_info = ((line_num, pos_in_line - 1), true);
+            auto_capitalization_slash_auto_color_info = ((line_num, pos_in_line - 1), true);
             reset_auto_capitalization_info = false;
         }
 
@@ -532,6 +533,8 @@ internal class NoteEditor
                 if (char.ToLower(char_to_color) != 'a' && char.ToLower(char_to_color) != 'i')
                 {
                     // Replace the variable with a colored version of the char
+                    auto_capitalization_slash_auto_color_info = ((line_num, pos_in_line - 1), true);
+                    reset_auto_capitalization_info = false;
                     curr_line[pos_in_line - 1] = new ColorChar((byte)char_to_color, Settings.PrimaryColor);
                 }
             }
@@ -601,7 +604,8 @@ internal class NoteEditor
 
         Set_unsaved_changes();
         pos_in_line++;
-        if (reset_auto_capitalization_info) auto_capitalization_info = ((0, 0), false);
+        if (reset_auto_capitalization_info && auto_capitalization_slash_auto_color_info.last_change_was_an_auto_capitalization_or_auto_color)
+            auto_capitalization_slash_auto_color_info = ((0, 0), false);
     }
 
     /// <summary>
@@ -685,12 +689,12 @@ internal class NoteEditor
     /// </summary>
     public void DeleteCharWithBackspace()
     {
-        if (auto_capitalization_info.last_change_was_an_auto_capitalization)
+        if (auto_capitalization_slash_auto_color_info.last_change_was_an_auto_capitalization_or_auto_color)
         {
-            int y = auto_capitalization_info.Item1.line;
-            int x = auto_capitalization_info.Item1.col;
-            lines[y][x].Char = char.ToLower(lines[y][x].Char);
-            auto_capitalization_info.last_change_was_an_auto_capitalization = false;
+            int y = auto_capitalization_slash_auto_color_info.Item1.line;
+            int x = auto_capitalization_slash_auto_color_info.Item1.col;
+            lines[y][x] = new ColorChar((byte) char.ToLower(lines[y][x].Char), 0);
+            auto_capitalization_slash_auto_color_info.last_change_was_an_auto_capitalization_or_auto_color = false;
             return;
         }
 
