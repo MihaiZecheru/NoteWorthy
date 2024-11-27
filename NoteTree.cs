@@ -241,14 +241,19 @@ internal class NoteTree
 
         string folder_name = AnsiConsole.Prompt(
             new TextPrompt<string>("Enter the name of the folder:")
-                .Validate(name => !string.IsNullOrWhiteSpace(name) && !name.Contains('/'), "Folder name cannot be empty or contain '/'")
+                .Validate(name => !string.IsNullOrWhiteSpace(name.Trim()) && !name.Contains('/'), "Folder name cannot be empty or contain '/'")
                 .Validate((string s) =>
                 {
+                    s = s.Trim();
                     return s.Length > 0 && s.Length <= NoteTree.BUFFER_WIDTH;
                 }, $"The dir name must be less than {NoteTree.BUFFER_WIDTH + 1} characters")
         ).Trim();
 
         if (folder_name == ".") return null;
+
+        if (Settings.AutoCapitalizeNoteAndDirNames)
+            folder_name = TitleCase(folder_name);
+
         string folder_path = Path.Combine(current_parent_treeItem?.FilePath ?? Program.NOTES_DIR_PATH, folder_name);
 
         Directory.CreateDirectory(folder_path);
@@ -275,11 +280,13 @@ internal class NoteTree
                 .Validate(name => !string.IsNullOrWhiteSpace(name) && !name.Contains('/') && !name.Contains('\\'), "Folder name cannot be empty or contain '/' or '\\")
                 .Validate((string s) =>
                 {
+                    s = s.Trim();
                     // -3 to account for the .nw that will be added if it's not already there
                     return s.Length > 0 && s.Length <= NoteTree.BUFFER_WIDTH - (s.EndsWith(".nw") ? 0 : 3);
                 }, $"The file name must be less than {NoteTree.BUFFER_WIDTH + 1} characters, including the '.nw' file extension")
                 .Validate(name =>
                 {
+                    name = name.Trim();
                     for (int i = 0; i < treeItemsInDir.Count; i++)
                     {
                         if (treeItemsInDir[i].Name == name || treeItemsInDir[i].Name == name + ".nw") return false;
@@ -290,6 +297,10 @@ internal class NoteTree
         ).Trim();
 
         if (file_name == ".") return null;
+
+        if (Settings.AutoCapitalizeNoteAndDirNames)
+            file_name = TitleCase(file_name);
+
         if (!file_name.EndsWith(".nw"))
             file_name += ".nw";
 
@@ -533,5 +544,24 @@ internal class NoteTree
         // Display width is constant 32
         BUFFER_HEIGHT = DISPLAY_HEIGHT - 2;
         BUFFER_WIDTH = DISPLAY_WIDTH - 4;
+    }
+
+    private static string TitleCase(string s)
+    {
+        string _s = "";
+
+        for (int i = 0; i < s.Length; i++)
+        {
+            if (i == 0 || s[i - 1] == ' ')
+            {
+                _s += char.ToUpper(s[i]);
+            }
+            else
+            {
+                _s += s[i];
+            }
+        }
+
+        return _s;
     }
 }

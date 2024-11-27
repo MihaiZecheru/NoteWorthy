@@ -10,6 +10,7 @@ internal static class Settings
 
     public static bool InsertMode = GetSetting("write_mode") != "overwrite";
     public static bool AutoCapitalizeLines = GetSetting("auto_capitalize_lines") == "true";
+    public static bool AutoCapitalizeNoteAndDirNames = GetSetting("auto_capitalize_note_and_dir_names") == "true";
     public static bool AutoColorNumbers = GetSetting("auto_color_numbers") == "true";
     public static bool AutoColorVariables = GetSetting("auto_color_variables") == "true";
     public static bool AutoColorVocabDefinitions = GetSetting("auto_color_vocab_definitions") == "true";
@@ -76,6 +77,9 @@ write_mode=insert
 
 // true | false - true to capitalize the first letter of each line - default: false
 auto_capitalize_lines=false
+
+// true | false - true to capitalize the first letter of every word in the note / dir name
+auto_capitalize_note_and_dir_names=false
 
 // true | false - true to automatically color all numbers in the text with the secondary_color - default: false
 auto_color_numbers=false

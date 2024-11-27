@@ -1076,7 +1076,9 @@ class Program
         }
         else
         {
+            // Account for .nw
             if (!new_name!.EndsWith(".nw")) new_name += ".nw";
+
             // Rename in file system
             File.Move(selected_item.FilePath, Path.Combine(Path.GetDirectoryName(selected_item.FilePath)!, new_name));
 
