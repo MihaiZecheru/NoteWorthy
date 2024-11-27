@@ -703,6 +703,7 @@ internal class NoteEditor
         if (AtBeginningOfLine())
         {
             if (OnFirstLine()) return;
+            if (curr_line.Count + lines[line_num - 1].Count > BUFFER_WIDTH) return;
             int prev_line_length = LineLength(line_num - 1);
             lines[line_num - 1].AddRange(curr_line);
             lines.RemoveAt(line_num);
@@ -787,6 +788,7 @@ internal class NoteEditor
             // Instead, delete the current line and append it to the previous line
 
             if (OnFirstLine()) return;
+            if (curr_line.Count + lines[line_num - 1].Count > BUFFER_WIDTH) return;
             int prev_line_length = LineLength(line_num - 1);
             lines[line_num - 1].AddRange(curr_line);
             lines.RemoveAt(line_num);
