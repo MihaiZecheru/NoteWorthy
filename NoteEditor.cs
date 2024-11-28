@@ -422,14 +422,18 @@ internal class NoteEditor
     /// If true, auto-capitalization and indent-matching will be skipped.
     /// The character will be inserted directly without any of the features that are meant for when the user is typing by hand.
     /// Modifications regarding color will be preserved, i.e. AutoColorNumbers, AutoColorVariables, etc.</param>
-    public void InsertChar(char c, bool direct_insert = false)
+    /// <returns>Returns true if the display should be updated. Only returns false when a character is inserted normally and with no color. Otherwise, if there's a special condition, will return true.</returns>
+    public bool InsertChar(char c, bool direct_insert = false)
     {
         // True to set auto_capitalization_info.last_change_was_an_auto_capitalization_or_auto_color to false at the end.
         bool reset_auto_capitalization_info = true;
+        
+        // True if the display should be updated
+        bool update_display = true;
 
-        if (LineIsFull() && insertModeOn) return;
+        if (LineIsFull() && insertModeOn) return false;
         // For overwrite mode
-        else if (LineIsFull() && AtEndOfLine()) return;
+        else if (LineIsFull() && AtEndOfLine()) return false;
 
         // If the char is not ascii
         if (c < 0 || c > 127)
@@ -546,6 +550,8 @@ internal class NoteEditor
             }
         }
 
+        AnsiConsole.Cursor.Hide();
+
         // Insert char
         if (AtEndOfLine())
         {
@@ -567,6 +573,11 @@ internal class NoteEditor
             {
                 // Add char normally
                 curr_line.Add(_char);
+                if (_char.GetBytes().color_byte == 0)
+                {
+                    Console.Write(_char.Char);
+                    update_display = false;
+                }
             }
         }
         else
@@ -575,14 +586,25 @@ internal class NoteEditor
             {
                 // Insert the char at the current position
                 curr_line.Insert(pos_in_line, _char);
+
+                if (_char.GetBytes().color_byte == 0)
+                {
+                    Console.Write(_char.Char.ToString() + new string(curr_line.Select(c => c.Char).ToArray()).Substring(pos_in_line + 1));
+                    update_display = false;
+                }
             }
             else
             {
                 // Overwrite the char at the current positon
                 curr_line[pos_in_line] = _char;
+
+                if (_char.GetBytes().color_byte == 0)
+                {
+                    Console.Write(_char.Char);
+                    update_display = false;
+                }
             }
         }
-
 
         // If the char to insert is a space, check for a possible vocab definition (FOR Settings.AutoColorVocabDefinitions)
         // Vocab definitions are detected when there is a colon followed by a space in the line prior to the halfway-point of the line 
@@ -593,7 +615,7 @@ internal class NoteEditor
             int tmp = pos_in_line;
             int colon_index = line_chars.IndexOf(':');
 
-            // Color the colon
+            // Color the word up to the colon
             for (int i = 0; i < colon_index; i++)
             {
                 curr_line[i] = new ColorChar((byte)curr_line[i].Char, Settings.PrimaryColor);
@@ -606,6 +628,9 @@ internal class NoteEditor
         pos_in_line++;
         if (reset_auto_capitalization_info && auto_capitalization_slash_auto_color_info.last_change_was_an_auto_capitalization_or_auto_color)
             auto_capitalization_slash_auto_color_info = ((0, 0), false);
+        UpdateCursorPosInEditor();
+        AnsiConsole.Cursor.Show();
+        return update_display;
     }
 
     /// <summary>
@@ -634,7 +659,7 @@ internal class NoteEditor
     public bool CheckIfAutoSaveRequired()
     {
         int interval = auto_save_give_extra_time ? 7500 : 1500;
-        bool auto_save = Settings.AutoSave && ms_since_last_change != 0 && DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - ms_since_last_change > interval;
+        bool auto_save = ms_since_last_change != 0 && DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - ms_since_last_change > interval;
         
         if (auto_save)
         {
@@ -687,7 +712,8 @@ internal class NoteEditor
     /// Delete a character with the Backspace key.
     /// Deletes the character to the left of the cursor.
     /// </summary>
-    public void DeleteCharWithBackspace()
+    /// <returns>Returns true if display should be updated. Only returns false when a character is deleted normally. Otherwise, if there's a special condition, will return true.</returns>
+    public bool DeleteCharWithBackspace()
     {
         if (auto_capitalization_slash_auto_color_info.last_change_was_an_auto_capitalization_or_auto_color)
         {
@@ -695,24 +721,25 @@ internal class NoteEditor
             int x = auto_capitalization_slash_auto_color_info.Item1.col;
             lines[y][x] = new ColorChar((byte) char.ToLower(lines[y][x].Char), 0);
             auto_capitalization_slash_auto_color_info.last_change_was_an_auto_capitalization_or_auto_color = false;
-            return;
+            return true;
         }
 
         if (SomeCharsAreHighlighted())
         {
             DeleteHighlightedChars();
-            return;
+            return true;
         }
 
         if (AtBeginningOfLine())
         {
-            if (OnFirstLine()) return;
-            if (curr_line.Count + lines[line_num - 1].Count > BUFFER_WIDTH) return;
+            if (OnFirstLine()) return false;
+            if (curr_line.Count + lines[line_num - 1].Count > BUFFER_WIDTH) return false;
             int prev_line_length = LineLength(line_num - 1);
             lines[line_num - 1].AddRange(curr_line);
             lines.RemoveAt(line_num);
             line_num--;
             pos_in_line = prev_line_length;
+            return true;
         }
         // Not at beginning of line - just remove the char, but first check conditions for deleting tabs and "    - "
         else
@@ -741,36 +768,45 @@ internal class NoteEditor
             {
                 curr_line.RemoveAt(pos_in_line - 1);
                 pos_in_line--;
+                AnsiConsole.Cursor.Hide();
+                Console.Write("\b \b");
+                AnsiConsole.Cursor.Show();
+                Set_unsaved_changes();
+                return false;
             }
-        }
 
-        Set_unsaved_changes();
+            Set_unsaved_changes();
+            return true;
+        }
     }
 
     /// <summary>
     /// Delete a single character with the delete key.
     /// Deletes the char to the right of the cursor.
     /// </summary>
-    public void DeleteCharWithDeleteKey()
+    public bool DeleteCharWithDeleteKey()
     {
         if (SomeCharsAreHighlighted())
         {
             DeleteHighlightedChars();
-            return;
+            return true;
         }
+
+        Set_unsaved_changes();
 
         if (AtEndOfLine())
         {
-            if (OnLastLine()) return;
+            if (OnLastLine()) return false;
             curr_line.AddRange(lines[line_num + 1]);
             lines.RemoveAt(line_num + 1);
+            return false;
         }
         else
         {
             curr_line.RemoveAt(pos_in_line);
+            Set_unsaved_changes();
+            return true;
         }
-
-        Set_unsaved_changes();
     }
 
     /// <summary>
@@ -847,12 +883,8 @@ internal class NoteEditor
     private bool auto_save_give_extra_time = false;
     private void Set_unsaved_changes(bool give_extra_time = false)
     {
-        if (Settings.AutoSave)
-        {
-            ms_since_last_change = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            auto_save_give_extra_time = give_extra_time;
-        }
-
+        ms_since_last_change = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        auto_save_give_extra_time = give_extra_time;
         unsaved_changes = true;
     }
 
@@ -1119,11 +1151,8 @@ internal class NoteEditor
         if (this.note_path == null) return;
         if (!unsaved_changes) return;
 
-        if (Settings.AutoSave)
-        {
-            ms_since_last_change = 0;
-        }
-
+        unsaved_changes = false;
+        ms_since_last_change = 0;
         SaveState();
 
         // Get bytes
@@ -1150,7 +1179,6 @@ internal class NoteEditor
             bytes.ToArray()
         );
 
-        unsaved_changes = false;
     }
 
     /// <summary>
@@ -1175,8 +1203,7 @@ internal class NoteEditor
         // Normal display
         else
         {
-            string unsaved_changes_indicator = unsaved_changes ? " *" : "";
-            return new Panel(GetDisplayMarkup()).Header($"[yellow] {Path.GetFileName(note_path)}{unsaved_changes_indicator} [/]")
+            return new Panel(GetDisplayMarkup()).Header($"[yellow] {Path.GetFileName(note_path)} [/]")
              .Expand()
              .RoundedBorder();
         }
@@ -1853,7 +1880,7 @@ internal class NoteEditor
 
     public void HighlightWholeNote()
     {
-        for (int i = 0; i < lines.Count - 1; i++)
+        for (int i = 0; i < lines.Count; i++)
         {
             for (int j = 0; j < lines[i].Count; j++)
             {

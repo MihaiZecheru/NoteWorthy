@@ -990,16 +990,22 @@ class Program
 
                 // Backspace - Delete char at cursor position with backspace
                 case ConsoleKey.Backspace:
-                    noteEditor.DeleteCharWithBackspace();
-                    Set_NoteEditorRequiresUpdate();
-                    SetTreeFooterRequiresUpdate();
+                    bool requires_update = noteEditor.DeleteCharWithBackspace();
+                    if (requires_update)
+                    {
+                        Set_NoteEditorRequiresUpdate();
+                        SetTreeFooterRequiresUpdate();
+                    }
                     break;
 
                 // Delete - Delete char at cursor position with delete key
                 case ConsoleKey.Delete:
-                    noteEditor.DeleteCharWithDeleteKey();
-                    Set_NoteEditorRequiresUpdate();
-                    SetTreeFooterRequiresUpdate();
+                    requires_update = noteEditor.DeleteCharWithDeleteKey();
+                    if (requires_update)
+                    {
+                        Set_NoteEditorRequiresUpdate();
+                        SetTreeFooterRequiresUpdate();
+                    }
                     break;
 
                 // F2 - Rename the current note
@@ -1021,12 +1027,33 @@ class Program
                 // Print char to the editor if it is a non-control char
                 default:
                     // Only print if the key is a non-control char
-                    if (!char.IsControl(keyInfo.KeyChar))
+                    if (char.IsControl(keyInfo.KeyChar)) break;
+                    bool requires_update = noteEditor.InsertChar(keyInfo.KeyChar);
+                    
+                    if (requires_update)
                     {
-                        noteEditor.InsertChar(keyInfo.KeyChar);
                         Set_NoteEditorRequiresUpdate();
                     }
-                    SetTreeFooterRequiresUpdate();
+                    else
+                    {
+                        AnsiConsole.Cursor.Hide();
+                        Console.SetCursorPosition(2, Console.BufferHeight - 2);
+
+                        // Get position
+                        (int line, int col) = noteEditor.GetCursorPosition();
+                        line++; col++;
+
+                        // Get total line and char count
+                        int lineCount = noteEditor.GetLineCount();
+                        int charCount = noteEditor.GetNoteCharCount();
+
+                        // Rewrite footer data
+                        int space_count = 14 + 4 - GetDigitCount(line) - GetDigitCount(col) - GetDigitCount(lineCount) - GetDigitCount(charCount);
+                        Console.Write($"T({lineCount}, {charCount}){new string(' ', space_count)}P({line}, {col})");
+                        noteEditor.UpdateCursorPosInEditor();
+                        AnsiConsole.Cursor.Show();
+                    }
+
                     break;
             }
         }

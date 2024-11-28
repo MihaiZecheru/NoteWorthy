@@ -14,7 +14,6 @@ internal static class Settings
     public static bool AutoColorNumbers = GetSetting("auto_color_numbers") == "true";
     public static bool AutoColorVariables = GetSetting("auto_color_variables") == "true";
     public static bool AutoColorVocabDefinitions = GetSetting("auto_color_vocab_definitions") == "true";
-    public static bool AutoSave = GetSetting("auto_save") == "true";
 
     public static byte PrimaryColor = byte.Parse(GetSetting("primary_color") ?? "12");
     public static byte SecondaryColor = byte.Parse(GetSetting("secondary_color") ?? "2");
@@ -90,9 +89,6 @@ auto_color_variables=false
 // true | false - true to automatically color the vocab definitions in the text with the primary_color - default: false
 // ex - key: value - 'key' would be colored automatically when the semicolon and space are typed
 auto_color_vocab_definitions=false
-
-// true | false - true to automatically save the file after typing - default: false
-auto_save=false
 
 // -------------------------
 // color options: https://spectreconsole.net/appendix/colors use the # column to represent the color
