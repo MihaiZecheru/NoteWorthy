@@ -855,6 +855,12 @@ class Program
                     Set_NoteEditorRequiresUpdate();
                     SetTreeFooterRequiresUpdate();
                     break;
+
+                // Ctrl+Space - Set all the colors Ctrl+(B | U | I ) to off. Color will be white
+                case ConsoleKey.Spacebar:
+                    noteEditor.SetAllColorsToOff();
+                    SetTreeFooterRequiresUpdate();
+                    break;
             }
         }
         // For functionality with regular keypresses

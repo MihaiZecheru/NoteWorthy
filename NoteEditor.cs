@@ -1381,16 +1381,8 @@ internal class NoteEditor
     /// </summary>
     public void TogglePrimaryColor()
     {
-        if (!primary_color_on && !secondary_color_on && !tertiary_color_on)
-        {
-            primary_color_on = true;
-        }
-        else
-        {
-            primary_color_on = false;
-        }
-
         secondary_color_on = false;
+        primary_color_on = !primary_color_on;
         tertiary_color_on = false;
     }
 
@@ -1410,16 +1402,8 @@ internal class NoteEditor
     /// </summary>
     public void ToggleSecondaryColor()
     {
-        if (!primary_color_on && !secondary_color_on && !tertiary_color_on)
-        {
-            secondary_color_on = true;
-        }
-        else
-        {
-            secondary_color_on = false;
-        }
-
         primary_color_on = false;
+        secondary_color_on = !secondary_color_on;
         tertiary_color_on = false;
     }
 
@@ -1436,17 +1420,9 @@ internal class NoteEditor
     /// </summary>
     public void ToggleTertiaryColor()
     {
-        if (!primary_color_on && !secondary_color_on && !tertiary_color_on)
-        {
-            tertiary_color_on = true;
-        }
-        else
-        {
-            tertiary_color_on = false;
-        }
-
         primary_color_on = false;
         secondary_color_on = false;
+        tertiary_color_on = !tertiary_color_on;
     }
 
     /// <summary>
@@ -1663,6 +1639,7 @@ internal class NoteEditor
         { ConsoleKey.I, "Toggle tertiary color (+shift for solo char)" },
         { ConsoleKey.D1, "Toggle tree visibility" },
         { ConsoleKey.G, "Go to line" },
+        { ConsoleKey.Spacebar, "Set all colors to off" }
     };
 
     private static Dictionary<ConsoleKey, string> editor_regular_functions = new()
@@ -1781,6 +1758,16 @@ internal class NoteEditor
         curr_line.AddRange(Enumerable.Repeat(new ColorChar((byte)'-', 0), BUFFER_WIDTH));
         pos_in_line = BUFFER_WIDTH;
         Set_unsaved_changes();
+    }
+
+    /// <summary>
+    /// Set all the colors (primary, secondary, tertiary) to off
+    /// </summary>
+    public void SetAllColorsToOff()
+    {
+        primary_color_on = false;
+        secondary_color_on = false;
+        tertiary_color_on = false;
     }
 
     #region Highlighting (selecting text)
