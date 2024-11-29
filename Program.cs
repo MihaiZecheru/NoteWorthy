@@ -1028,7 +1028,7 @@ class Program
                 default:
                     // Only print if the key is a non-control char
                     if (char.IsControl(keyInfo.KeyChar)) break;
-                    bool requires_update = noteEditor.InsertChar(keyInfo.KeyChar);
+                    requires_update = noteEditor.InsertChar(keyInfo.KeyChar);
                     
                     if (requires_update)
                     {
