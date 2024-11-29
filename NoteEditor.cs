@@ -427,7 +427,10 @@ internal class NoteEditor
     {
         // True to set auto_capitalization_info.last_change_was_an_auto_capitalization_or_auto_color to false at the end.
         bool reset_auto_capitalization_info = true;
-        
+
+        // True if the first char was autocapitalized due to the setting
+        bool was_auto_capitalized = false;
+
         // True if the display should be updated
         bool update_display = true;
 
@@ -461,6 +464,7 @@ internal class NoteEditor
             curr_line[0].Char = char.ToUpper(curr_line[0].Char);
             auto_capitalization_slash_auto_color_info = ((line_num, 0), true);
             reset_auto_capitalization_info = false;
+            was_auto_capitalized = true;
         }
         // auto-capitalize the first word but when it's after a dash + space ("    - ")
         else if (
@@ -477,6 +481,7 @@ internal class NoteEditor
             curr_line[6].Char = char.ToUpper(curr_line[6].Char);
             auto_capitalization_slash_auto_color_info = ((line_num, 6), true);
             reset_auto_capitalization_info = false;
+            was_auto_capitalized = true;
         }
         // Check to auto-capitalize the letter 'i'. Works when the is proceeds and follows a space, ex: ' i '
         else if (
@@ -606,6 +611,9 @@ internal class NoteEditor
             }
         }
 
+        // True if a vocab definitiion was auto-colored as a result of this char press
+        bool vocab_definition_was_auto_colored = false;
+
         // If the char to insert is a space, check for a possible vocab definition (FOR Settings.AutoColorVocabDefinitions)
         // Vocab definitions are detected when there is a colon followed by a space in the line prior to the halfway-point of the line 
         // The : cannot be the first character
@@ -622,6 +630,7 @@ internal class NoteEditor
             }
 
             pos_in_line = tmp;
+            vocab_definition_was_auto_colored = true;
         }
 
         Set_unsaved_changes();
@@ -630,7 +639,7 @@ internal class NoteEditor
             auto_capitalization_slash_auto_color_info = ((0, 0), false);
         UpdateCursorPosInEditor();
         AnsiConsole.Cursor.Show();
-        return update_display;
+        return update_display || was_auto_capitalized || vocab_definition_was_auto_colored;
     }
 
     /// <summary>
