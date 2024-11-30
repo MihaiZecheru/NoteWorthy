@@ -302,6 +302,16 @@ class Program
 
     private static void HandleTreeInput(ConsoleKeyInfo keyInfo)
     {
+        if (keyInfo.Key == ConsoleKey.J && keyInfo.Modifiers.HasFlag(ConsoleModifiers.Control))
+        {
+            // This function will handle the closing of the window, too.
+            OpenAIWindow();
+            treeFooterRequiresUpdate = true;
+            SetTreeFooterRequiresUpdate();
+            Set_NoteEditorRequiresUpdate();
+            return;
+        }
+
         // For shortcuts with the control key
         if (keyInfo.Modifiers.HasFlag(ConsoleModifiers.Control))
         {
@@ -536,6 +546,16 @@ class Program
         if (keyInfo.Key == ConsoleKey.V && keyInfo.Modifiers.HasFlag(ConsoleModifiers.Alt))
         {
             HandlePaste();
+            return;
+        }
+
+        if (keyInfo.Key == ConsoleKey.J && keyInfo.Modifiers.HasFlag(ConsoleModifiers.Control))
+        {
+            // This function will handle the closing of the window, too.
+            OpenAIWindow();
+            treeFooterRequiresUpdate = true;
+            SetTreeFooterRequiresUpdate();
+            Set_NoteEditorRequiresUpdate();
             return;
         }
 
@@ -1024,8 +1044,17 @@ class Program
                     break;
 
                 // Tab - Insert 4 spaces
+                // Shift+Tab - Unindent, remove a tab if it exists
                 case ConsoleKey.Tab:
-                    noteEditor.InsertTab();
+                    if (keyInfo.Modifiers.HasFlag(ConsoleModifiers.Shift))
+                    {
+                        noteEditor.Unindent();
+                    }
+                    else
+                    {
+                        noteEditor.InsertTab();
+                    }
+
                     Set_NoteEditorRequiresUpdate();
                     SetTreeFooterRequiresUpdate();
                     break;
@@ -1623,5 +1652,88 @@ class Program
 
         // clear all input while the paste was occurring
         while (Console.KeyAvailable) Console.ReadKey(true);
+    }
+
+    private static void OpenAIWindow()
+    {
+        if (noteEditor.HasUnsavedChanges()) AskToSaveUnsavedChanges("[yellow]Opening AI window... [/]but first:");
+
+        bool cursor_was_invisible = !Console.CursorVisible;
+        AnsiConsole.Cursor.Show();
+
+        string prompt = "";
+        string result = "";
+        int buffer_width = Console.BufferWidth - 12;
+
+        Action set_cursor = () => Console.SetCursorPosition(10 + prompt.Length, 1);
+        Func<Layout> generate_AI_window_layout = () =>
+        {
+            var prompt_panel = new Panel(new Markup($"[blue]Prompt:[/] {prompt}")).BorderColor(Color.Blue).RoundedBorder().Expand();
+            var response_panel = new Panel(new Markup(result)).BorderColor(Color.Blue).RoundedBorder().Expand();
+
+            return new Layout()
+            .SplitRows(
+                new Layout("Prompt", prompt_panel).Size(3),
+                new Layout("Response", response_panel)
+            );
+        };
+
+        AnsiConsole.Cursor.Hide();
+        Console.SetCursorPosition(0, 0);
+        AnsiConsole.Write(generate_AI_window_layout());
+        AnsiConsole.Cursor.Show();
+        set_cursor();
+
+        while (true)
+        {
+            if (!Console.KeyAvailable) continue;
+
+            ConsoleKeyInfo keyInfo = Console.ReadKey(true);
+
+            if (keyInfo.Key == ConsoleKey.J && keyInfo.Modifiers.HasFlag(ConsoleModifiers.Control)) break;
+            if (keyInfo.Key == ConsoleKey.Q && keyInfo.Modifiers.HasFlag(ConsoleModifiers.Control)) break;
+
+            if (keyInfo.Key == ConsoleKey.Enter && prompt.Length != 0)
+            {
+                AnsiConsole.Cursor.Hide();
+                Console.Clear();
+                Console.Write("Thinking...");
+                result = AI.GetResponseAsync(prompt).GetAwaiter().GetResult();
+                while (Console.KeyAvailable) Console.ReadKey(true); // Clear input pressed while bot was loading
+                prompt = "";
+                Console.SetCursorPosition(0, 0);
+                AnsiConsole.Write(generate_AI_window_layout());
+                result = "";
+                set_cursor();
+                AnsiConsole.Cursor.Show();
+                continue;
+            }
+            else if (keyInfo.Key == ConsoleKey.Backspace && prompt.Length != 0)
+            {
+                prompt = prompt.Substring(0, prompt.Length - 1);
+                Console.Write("\b \b");
+
+                if (keyInfo.Modifiers.HasFlag(ConsoleModifiers.Control))
+                {
+                    while (prompt.Length != 0 && prompt[prompt.Length - 1] != ' ')
+                    {
+                        prompt = prompt.Substring(0, prompt.Length - 1);
+                        Console.Write("\b \b");
+                    }
+                }
+
+                set_cursor();
+                continue;
+            }
+
+            if (char.IsControl(keyInfo.KeyChar) || prompt.Length == buffer_width) continue;
+
+            // Append the key to the prompt
+            prompt += keyInfo.KeyChar;
+            Console.Write(keyInfo.KeyChar);
+            set_cursor();
+        }
+
+        if (cursor_was_invisible) AnsiConsole.Cursor.Hide();
     }
 }

@@ -463,6 +463,11 @@ internal class NoteTree
         is_visible = true;
     }
 
+    public void SetInvisible()
+    {
+        is_visible = false;
+    }
+
     /// <summary>
     /// Make a copy of the selected tree item if it is a file. 
     /// The copy will not be made if a file with the resulting name (name - copy.nw) already exists.

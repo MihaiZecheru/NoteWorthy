@@ -1,4 +1,5 @@
 ﻿using Spectre.Console;
+using System;
 using System.Text;
 using TextCopy;
 
@@ -492,6 +493,8 @@ internal class NoteEditor
             c == ' '
             &&
             curr_line.Count >= 3
+            &&
+            pos_in_line >= 2
             &&
             curr_line[pos_in_line - 1] == 'i'
             &&
@@ -1555,7 +1558,7 @@ internal class NoteEditor
         // Insert tab normally
 
         int size = 4;
-        bool tab_fits = curr_line.Count <= BUFFER_WIDTH - 4;
+        bool tab_fits = curr_line.Count <= BUFFER_WIDTH - size;
 
         // Check early return conditions
         if (insertModeOn)
@@ -1564,12 +1567,25 @@ internal class NoteEditor
         }
         else
         {
-            if (!tab_fits && pos_in_line > BUFFER_WIDTH - 4) return;
+            if (!tab_fits && pos_in_line > BUFFER_WIDTH - size) return;
         }
-        
-        for (int i = 0; i < size; i++)
+
+        ColorChar space_char = new ColorChar((byte)' ', 0);
+        curr_line.InsertRange(pos_in_line, new ColorChar[] { space_char, space_char, space_char, space_char });
+        pos_in_line += size;
+        Set_unsaved_changes();
+    }
+
+    /// <summary>
+    /// Remove a tab from the beginning of the current line if possible
+    /// </summary>
+    public void Unindent()
+    {
+        if (curr_line.Count >= 4 && curr_line[0] == ' ' && curr_line[1] == ' ' && curr_line[2] == ' ' && curr_line[3] == ' ')
         {
-            InsertChar(' ');
+            curr_line.RemoveRange(0, 4);
+            pos_in_line = Math.Max(0, pos_in_line - 4);
+            Set_unsaved_changes();
         }
     }
 
@@ -1639,7 +1655,8 @@ internal class NoteEditor
         { ConsoleKey.I, "Toggle tertiary color (+shift for solo char)" },
         { ConsoleKey.D1, "Toggle tree visibility" },
         { ConsoleKey.G, "Go to line" },
-        { ConsoleKey.Spacebar, "Set all colors to off" }
+        { ConsoleKey.Spacebar, "Set all colors to off" },
+        { ConsoleKey.J, "Open AI window" }
     };
 
     private static Dictionary<ConsoleKey, string> editor_regular_functions = new()
@@ -1656,7 +1673,7 @@ internal class NoteEditor
         { ConsoleKey.Backspace, "Delete character" },
         { ConsoleKey.Delete, "Delete character (to the right)" },
         { ConsoleKey.F2, "Rename note" },
-        { ConsoleKey.Tab, "Insert tab" }
+        { ConsoleKey.Tab, "Insert tab (+shift to unindent)" }
     };
 
     /// <summary>
@@ -1768,6 +1785,11 @@ internal class NoteEditor
         primary_color_on = false;
         secondary_color_on = false;
         tertiary_color_on = false;
+    }
+
+    public void OpenAIWindow()
+    {
+        
     }
 
     #region Highlighting (selecting text)
