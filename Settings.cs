@@ -14,6 +14,7 @@ internal static class Settings
     public static bool AutoColorNumbers = GetSetting("auto_color_numbers") == "true";
     public static bool AutoColorVariables = GetSetting("auto_color_variables") == "true";
     public static bool AutoColorVocabDefinitions = GetSetting("auto_color_vocab_definitions") == "true";
+    public static bool AutoFormatSubtitles = GetSetting("auto_format_subtitles") == "true";
 
     public static byte PrimaryColor = byte.Parse(GetSetting("primary_color") ?? "12");
     public static byte SecondaryColor = byte.Parse(GetSetting("secondary_color") ?? "2");
@@ -62,7 +63,7 @@ internal static class Settings
         return value.Trim();
     }
 
-    public static void CreateDefaultSettingsFile()
+    private static void CreateDefaultSettingsFile()
     {
         File.WriteAllText(file_path, @"// Note: all settings are case sensitive. If an invalid value is provided, the default will be used
 // Do not touch the comments
@@ -90,6 +91,9 @@ auto_color_variables=false
 // ex - key: value - 'key' would be colored automatically when the semicolon and space are typed
 auto_color_vocab_definitions=false
 
+// true | false - true to automatically center and color subtitles with the primary color. Subtitles are the line above a dotted line inserted by Ctrl+L
+auto_format_subtitles=false
+
 // -------------------------
 // color options: https://spectreconsole.net/appendix/colors use the # column to represent the color
 // -------------------------
@@ -107,10 +111,11 @@ tertiary_color=9
 
     public static void OpenSettingsFile()
     {
+        if (!Settings.SettingsFileExists()) CreateDefaultSettingsFile();
         Process.Start("notepad.exe", file_path);
     }
 
-    public static bool SettingsFileExists()
+    private static bool SettingsFileExists()
     {
         return File.Exists(file_path);
     }

@@ -395,10 +395,6 @@ class Program
                     }
                     else
                     {
-                        if (!Settings.SettingsFileExists())
-                        {
-                            Settings.CreateDefaultSettingsFile();
-                        }
                         Settings.OpenSettingsFile();
                     }
 
@@ -750,14 +746,9 @@ class Program
                     }
                     else
                     {
-                        if (!Settings.SettingsFileExists())
-                        {
-                            Settings.CreateDefaultSettingsFile();
-                        }
                         Settings.OpenSettingsFile();
                     }
 
-                    break;
                     break;
 
                 // Ctrl+DownArrow - Navigate to the next note (downwards)

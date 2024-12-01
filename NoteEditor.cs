@@ -1770,10 +1770,44 @@ internal class NoteEditor
 
     public void InsertDashedLine()
     {
+        // Line must be completely empty to insert the dashed line, as Ctrl+L is used for subtitles and must take up the whole line
         if (!LineIsEmpty()) return;
 
-        curr_line.AddRange(Enumerable.Repeat(new ColorChar((byte)'-', 0), BUFFER_WIDTH));
+        // Check for possible subtitle
+        if (Settings.AutoFormatSubtitles && line_num >= 1 && lines[line_num - 1].Count != 0)
+        {
+            List<ColorChar> subtitle_line = lines[line_num - 1];
+            int spaces_to_add = (BUFFER_WIDTH - subtitle_line.Count) / 2;
+            ColorChar space = new ColorChar((byte)' ', 0);
+            subtitle_line.InsertRange(0, Enumerable.Repeat(space, spaces_to_add));
+            for (int i = 0; i < subtitle_line.Count; i++)
+            {
+                if (subtitle_line[i].GetBytes().color_byte == 0)
+                {
+                    subtitle_line[i] = new ColorChar((byte)subtitle_line[i].Char, Settings.PrimaryColor);
+                }
+            }
+        }
+
+        ColorChar dash = new ColorChar((byte)'-', 0);
+        curr_line.AddRange(Enumerable.Repeat(dash, BUFFER_WIDTH));
         pos_in_line = BUFFER_WIDTH;
+        
+        if (line_num < BUFFER_HEIGHT - 1)
+        {
+            if (line_num < lines.Count - 1)
+            {
+                line_num++;
+            }
+            else
+            {
+                lines.Add(new List<ColorChar>());
+                line_num++;
+            }
+
+            pos_in_line = 0;
+        }
+
         Set_unsaved_changes();
     }
 
