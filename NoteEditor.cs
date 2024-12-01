@@ -439,9 +439,49 @@ internal class NoteEditor
         // True if the display should be updated
         bool update_display = true;
 
-        if (LineIsFull() && insertModeOn) return false;
-        // For overwrite mode
-        else if (LineIsFull() && AtEndOfLine()) return false;
+        /**
+         * Checks to see if the character will overflow to the next line
+         * If there is overflow, there are two possible circumstances:
+         * (1) the line contains multiple words, and therefore the last word will be wrapped to the next line if there are lines available
+         * (2) the line is one big word (due to the user spamming characters or having a dashed line from Ctrl+L), and therefore the character is added to the next line if there are lines available
+        */
+
+        // True if the line was full and the last word/char was automatically moved to the next line
+        bool auto_moved_to_next_line = false;
+
+        //  (insert mode) | (overwrite mode)
+        if ((LineIsFull() && insertModeOn) || (LineIsFull() && AtEndOfLine()))
+        {
+            // Add new line
+            if (curr_line_index < BUFFER_HEIGHT - 1)
+            {
+                lines.Insert(curr_line_index + 1, new List<ColorChar>());
+                auto_moved_to_next_line = true;
+            }
+            else
+            {
+                return false;
+            }
+
+            // If line is multiple words (at least 3), then bring past word to next line
+            if (GetSpacesCountInLine(curr_line) >= 3 && c != ' ' && curr_line[curr_char_index - 1] != ' ')
+            {
+                int start_of_last_word_index = FindIndexOf_StartOfPreviousWord() + 1; // +1 to leave the space
+                List<ColorChar> word = curr_line.GetRange(start_of_last_word_index, curr_line.Count - start_of_last_word_index);
+                lines[curr_line_index + 1].AddRange(word);
+                curr_line.RemoveRange(start_of_last_word_index, curr_line.Count - start_of_last_word_index);
+                curr_line_index++;
+                curr_char_index = word.Count;
+            }
+            else
+            {
+                curr_line_index++;
+                curr_char_index = 0;
+                // If the last char in the line is a space, don't worry bout bringing the last word over;
+                // let the user write his word on the new line
+                if (c == ' ') return true;
+            }
+        }
 
         // If the char is not ascii
         if (c < 0 || c > 127)
@@ -646,7 +686,7 @@ internal class NoteEditor
             auto_capitalization_slash_auto_color_info = ((0, 0), false);
         UpdateCursorPosInEditor();
         AnsiConsole.Cursor.Show();
-        return update_display || was_auto_capitalized || vocab_definition_was_auto_colored;
+        return update_display || was_auto_capitalized || vocab_definition_was_auto_colored || auto_moved_to_next_line;
     }
 
     /// <summary>
