@@ -1,11 +1,15 @@
 ﻿using Spectre.Console;
-using System;
 using System.Text;
 using TextCopy;
 
 namespace NoteWorthy;
 internal class NoteEditor
 {
+    /// <summary>
+    /// ColorChar representing a space. Used in a lot of shortcuts.
+    /// </summary>
+    private ColorChar SPACE = new ColorChar((byte)' ', 0);
+
     /// <summary>
     /// Buffer height of the editor. This is the width of the editor minus the panel top/bottom borders
     /// </summary>
@@ -76,6 +80,7 @@ internal class NoteEditor
 
     /// <summary>
     /// If true, typing chars will insert them into the line. If false, typing chars will overwrite the whatever is at the cursor.
+    /// Is initially the value in the Settings file.
     /// </summary>
     private bool insertModeOn = Settings.InsertMode;
 
@@ -152,7 +157,7 @@ internal class NoteEditor
         typingDisabled = false;
 
         // " ..." a space and three dots
-        ColorChar[] elipsis = { new ColorChar((byte)' ', 0), new ColorChar((byte)'.', 0), new ColorChar((byte)'.', 0), new ColorChar((byte)'.', 0) };
+        ColorChar[] elipsis = { SPACE, SPACE, SPACE, SPACE };
 
         // If the note is too big to fit in the editor, disable typing
         if (lines!.Count > BUFFER_HEIGHT)
@@ -307,10 +312,9 @@ internal class NoteEditor
                 }
                 else
                 {
-                    ColorChar space_char = new ColorChar((byte)' ', 0);
                     lines.Insert(curr_line_index + 1, new List<ColorChar>()
                     {
-                        space_char, space_char, space_char, space_char, new ColorChar((byte)'-', 0), space_char
+                        SPACE, SPACE, SPACE, SPACE, new ColorChar((byte)'-', 0), SPACE
                     });
                     curr_char_index = 6;
                 }
@@ -1570,8 +1574,7 @@ internal class NoteEditor
             if (!tab_fits && curr_char_index > BUFFER_WIDTH - size) return;
         }
 
-        ColorChar space_char = new ColorChar((byte)' ', 0);
-        curr_line.InsertRange(curr_char_index, new ColorChar[] { space_char, space_char, space_char, space_char });
+        curr_line.InsertRange(curr_char_index, new ColorChar[] { SPACE, SPACE, SPACE, SPACE });
         curr_char_index += size;
         Set_unsaved_changes();
     }
@@ -1778,8 +1781,7 @@ internal class NoteEditor
         {
             List<ColorChar> subtitle_line = lines[curr_line_index - 1];
             int spaces_to_add = (BUFFER_WIDTH - subtitle_line.Count) / 2;
-            ColorChar space = new ColorChar((byte)' ', 0);
-            subtitle_line.InsertRange(0, Enumerable.Repeat(space, spaces_to_add));
+            subtitle_line.InsertRange(0, Enumerable.Repeat(SPACE, spaces_to_add));
             for (int i = 0; i < subtitle_line.Count; i++)
             {
                 if (subtitle_line[i].GetBytes().color_byte == 0)
@@ -1793,6 +1795,7 @@ internal class NoteEditor
         curr_line.AddRange(Enumerable.Repeat(dash, BUFFER_WIDTH));
         curr_char_index = BUFFER_WIDTH;
         
+        // Move cursor to the next line if possible
         if (curr_line_index < BUFFER_HEIGHT - 1)
         {
             if (curr_line_index < lines.Count - 1)
@@ -1819,11 +1822,6 @@ internal class NoteEditor
         primary_color_on = false;
         secondary_color_on = false;
         tertiary_color_on = false;
-    }
-
-    public void OpenAIWindow()
-    {
-        
     }
 
     #region Highlighting (selecting text)
