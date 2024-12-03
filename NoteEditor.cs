@@ -463,20 +463,34 @@ internal class NoteEditor
                 return false;
             }
 
+            bool curr_line_is_a_dash_indent = curr_line[0] == ' ' && curr_line[1] == ' ' && curr_line[2] == ' '
+                && curr_line[3] == ' ' && curr_line[4] == '-' && curr_line[5] == ' ';
+
+            // Check for auto indent due to the overflowing line being a dash + space indent
+            if (curr_line_is_a_dash_indent)
+            {
+                lines[curr_line_index + 1] = new List<ColorChar>()
+                {
+                    SPACE, SPACE, SPACE, SPACE, SPACE, SPACE
+                };
+            }
+
             // If line is multiple words (at least 3), then bring past word to next line
             if (GetSpacesCountInLine(curr_line) >= 3 && c != ' ' && curr_line[curr_char_index - 1] != ' ')
             {
+                // TODO: chek for edge case: "    - " space + dash combo, auto indent if that's the case
                 int start_of_last_word_index = FindIndexOf_StartOfPreviousWord() + 1; // +1 to leave the space
                 List<ColorChar> word = curr_line.GetRange(start_of_last_word_index, curr_line.Count - start_of_last_word_index);
                 lines[curr_line_index + 1].AddRange(word);
                 curr_line.RemoveRange(start_of_last_word_index, curr_line.Count - start_of_last_word_index);
                 curr_line_index++;
                 curr_char_index = word.Count;
+                if (curr_line_is_a_dash_indent) curr_char_index += 6;
             }
             else
             {
                 curr_line_index++;
-                curr_char_index = 0;
+                curr_char_index = curr_line_is_a_dash_indent ? 6 : 0;
                 // If the last char in the line is a space, don't worry bout bringing the last word over;
                 // let the user write his word on the new line
                 if (c == ' ') return true;
