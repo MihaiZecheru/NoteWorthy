@@ -82,17 +82,17 @@ auto_capitalize_lines=false
 auto_capitalize_note_and_dir_names=false
 
 // true | false - true to automatically color all numbers in the text with the secondary_color - default: false
-auto_color_numbers=false
+auto_color_numbers=true
 
 // true | false - true to automatically color all variables (single characters like 'x' or 'y' that are not 'a' or 'i' specifically) in the text with the primary_color - default: false
-auto_color_variables=false
+auto_color_variables=true
 
 // true | false - true to automatically color the vocab definitions in the text with the primary_color - default: false
 // ex - key: value - 'key' would be colored automatically when the semicolon and space are typed
-auto_color_vocab_definitions=false
+auto_color_vocab_definitions=true
 
 // true | false - true to automatically center and color subtitles with the primary color. Subtitles are the line above a dotted line inserted by Ctrl+L
-auto_format_subtitles=false
+auto_format_subtitles=true
 
 // -------------------------
 // color options: https://spectreconsole.net/appendix/colors use the # column to represent the color
