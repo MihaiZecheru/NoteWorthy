@@ -319,27 +319,6 @@ internal class NoteEditor
                     curr_char_index = 6;
                 }
             }
-            // If the current line is a vocab definition, the new line will be indented with a space
-            // Vocab definitions are detected when there is a colon followed by a space in the line
-            // the line is also within 9 chars of being full
-            // The : cannot be the first character
-            else if (!direct_insert && line_chars.Count >= BUFFER_WIDTH - 9 && line_chars.IndexOf(':') != 0 && line_chars.Contains(':') && curr_line[line_chars.IndexOf(':') + 1] == ' ')
-            {
-                ColorChar space_char = new((byte)' ', 0);
-
-                int colon_index = line_chars.IndexOf(':') + 2; // +2 to account for the colon itself and the space that follows it
-                lines.Insert(curr_line_index + 1, new());
-
-                // If the colon is too far towards the end of the buffer, just do a small indent to continue the def
-                int spaces_to_add = line_chars.IndexOf(':') < BUFFER_WIDTH / 3 ? colon_index : 4;
-
-                for (int i = 0; i < spaces_to_add; i++)
-                {
-                    lines[curr_line_index + 1].Add(space_char);
-                }
-
-                curr_char_index = spaces_to_add;
-            }
             // If enter is pressed when the line is just a bunch of spaces, delete the spaces in that line.
             // Used for when the vocab definition indent occurs but the user doesn't use it and goes to the next line; in this case the
             // indent that isn't wanted should be cleared
