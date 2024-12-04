@@ -657,10 +657,10 @@ internal class NoteEditor
         bool vocab_definition_was_auto_colored = false;
 
         // If the char to insert is a space, check for a possible vocab definition (FOR Settings.AutoColorVocabDefinitions)
-        // Vocab definitions are detected when there is a colon followed by a space in the line prior to the halfway-point of the line 
+        // Vocab definitions are detected when there is a colon followed by a space in the line prior to the 2/5-point of the line 
         // The : cannot be the first character
         List<char> line_chars = curr_line.Select(l => l.Char).ToList();
-        if (Settings.AutoColorVocabDefinitions && c == ' ' && line_chars.Count >= 3 && line_chars.Contains(':') && line_chars.IndexOf(':') != 0 && line_chars.IndexOf(':') <= BUFFER_WIDTH / 3)
+        if (Settings.AutoColorVocabDefinitions && c == ' ' && line_chars.Count >= 3 && line_chars.Contains(':') && line_chars.IndexOf(':') != 0 && line_chars.IndexOf(':') <= BUFFER_WIDTH * 2/5)
         {
             int tmp = curr_char_index;
             int colon_index = line_chars.IndexOf(':');
