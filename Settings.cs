@@ -79,7 +79,7 @@ write_mode=insert
 auto_capitalize_lines=false
 
 // true | false - true to capitalize the first letter of every word in the note / dir name
-auto_capitalize_note_and_dir_names=false
+auto_capitalize_note_and_dir_names=true
 
 // true | false - true to automatically color all numbers in the text with the secondary_color - default: false
 auto_color_numbers=true
