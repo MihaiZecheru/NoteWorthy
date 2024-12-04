@@ -430,6 +430,8 @@ internal class NoteEditor
     /// <returns>Returns true if the display should be updated. Only returns false when a character is inserted normally and with no color. Otherwise, if there's a special condition, will return true.</returns>
     public bool InsertChar(char c, bool direct_insert = false)
     {
+        // Note: do not replace highlighted chars with `c`; it would be too resource-heavy
+
         // True to set auto_capitalization_info.last_change_was_an_auto_capitalization_or_auto_color to false at the end.
         bool reset_auto_capitalization_info = true;
 
@@ -1281,7 +1283,11 @@ internal class NoteEditor
 
     public void MoveCursorUp()
     {
-        if (OnFirstLine()) return;
+        if (OnFirstLine())
+        {
+            curr_char_index = 0;
+            return;
+        }
 
         curr_line_index--;
         if (curr_char_index > curr_line.Count)
