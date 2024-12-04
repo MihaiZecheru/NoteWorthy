@@ -1606,8 +1606,8 @@ internal class NoteEditor
         else
             curr_line_index = line;
 
-        // Go to beginning of line
-        curr_char_index = 0;
+        // Go to end of line
+        curr_char_index = curr_line.Count;
     }
 
     private string HandleSquareBrackets(char c)
