@@ -34,7 +34,7 @@ internal class AI
 
         string responseContent = await response.Content.ReadAsStringAsync();
 
-        string pattern = "\"content\": \"(.*?)\"";
+        string pattern = "\"content\": \"(.*?)\",";
         Match match = Regex.Match(responseContent, pattern);
 
         if (match.Success)
