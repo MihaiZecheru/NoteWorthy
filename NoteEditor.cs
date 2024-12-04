@@ -820,7 +820,20 @@ internal class NoteEditor
                 curr_line.RemoveAt(curr_char_index - 1);
                 curr_char_index--;
                 AnsiConsole.Cursor.Hide();
-                Console.Write("\b \b");
+                // If char is at the end of line, do the \b \b thing to delete the char
+                // Otherwise, the line needs to be rewritten to account for the deleted char, assuming the deleted char was somewhere in the middle of the line
+                
+                if (AtEndOfLine())
+                {
+                    Console.Write("\b \b");
+                }
+                else
+                {
+                    if (Console.CursorLeft > 0) Console.CursorLeft--;
+                    Console.Write(new string(curr_line.Select(c => c.Char).ToArray()).Substring(curr_char_index) + " ");
+                    UpdateCursorPosInEditor();
+                }
+
                 AnsiConsole.Cursor.Show();
                 Set_unsaved_changes();
                 return false;
