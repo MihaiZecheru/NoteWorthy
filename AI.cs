@@ -1,5 +1,4 @@
-﻿using System.Text.Json;
-using System.Text;
+﻿using System.Text;
 using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
 
@@ -40,8 +39,7 @@ internal class AI
 
         if (match.Success)
         {
-            string reply = match.Groups[1].Value.Replace("\\n", "\n").Replace("\\\"", "\"").Trim();
-            return reply;
+            return match.Groups[1].Value.Replace("\\n", "\n").Replace("\\\"", "\"").Trim();
         }
         else
         {
