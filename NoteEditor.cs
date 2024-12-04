@@ -1965,18 +1965,18 @@ internal class NoteEditor
 
         for (int i = 0; i < lines.Count; i++)
         {
-            bool line_had_highlighted_char = false;
+            bool line_had_at_least_one_highlighted_char = false;
             for (int j = 0; j < lines[i].Count; j++)
             {
                 if (lines[i][j].IsHighlighted())
                 {
                     highlighted_text.Append(lines[i][j].Char);
                     lines[i][j].ToggleHighlighting();
-                    line_had_highlighted_char = true;
+                    line_had_at_least_one_highlighted_char = true;
                 }
             }
 
-            if (line_had_highlighted_char || lines[i].Count == 0) highlighted_text.Append('\n');
+            if (line_had_at_least_one_highlighted_char || lines[i].Count == 0) highlighted_text.Append('\n');
         }
 
         ClipboardService.SetText(highlighted_text.ToString().Trim());
@@ -2048,26 +2048,63 @@ internal class NoteEditor
 
     private void DeleteHighlightedChars()
     {
-        var to_delete = new List<(int line, int col)>();
+        (int line, int col)? first_highlighted_char = GetFirstHighlightedCharPos();
+        (int line, int col)? last_highlighted_char = GetLastHighlightedCharPos();
+        if (first_highlighted_char == null || last_highlighted_char == null) return;
 
+        for (int i = first_highlighted_char.Value.line; i < last_highlighted_char.Value.line; i++)
+        {
+            for (int j = (i == first_highlighted_char.Value.line) ? first_highlighted_char.Value.col : 0; j < lines[i].Count; j++)
+            {
+                if (lines[i][j].IsHighlighted())
+                {
+                    lines[i].RemoveAt(j);
+                    j--;
+                }
+            }
+
+            if (lines[i].Count == 0)
+            {
+                if (i == lines.Count - 1) break;
+                lines.RemoveAt(i);
+                i--;
+            }
+        }
+
+        curr_line_index = first_highlighted_char.Value.line;
+        curr_char_index = first_highlighted_char.Value.col;
+    }
+
+    /// <summary>
+    /// Get the position of the first highlighted character in the note lines[i][j] where (i, j) is returned
+    /// </summary>
+    private (int, int)? GetFirstHighlightedCharPos()
+    {
         for (int i = 0; i < lines.Count; i++)
         {
             for (int j = 0; j < lines[i].Count; j++)
             {
-                if (lines[i][j].IsHighlighted()) to_delete.Add((i, j));
+                if (lines[i][j].IsHighlighted()) return (i, j);
             }
         }
 
-        if (to_delete.Count == 0) return;
+        return null;
+    }
 
-        for (int i = to_delete.Count - 1; i >= 0; i--)
+    /// <summary>
+    /// Get the position of the last highlighted character ion the note lines[i][j] where (i, j) is returned
+    /// </summary>
+    /// <returns></returns>
+    private (int, int)? GetLastHighlightedCharPos()
+    {
+        for (int i = lines.Count - 1; i >= 0; i--)
         {
-            (int line, int col) = to_delete[i];
-            lines[line].RemoveAt(col);
+            for (int j = lines[i].Count - 1; j >= 0; j--)
+            {
+                if (lines[i][j].IsHighlighted()) return (i, j);
+            }
         }
-
-        curr_line_index = to_delete[0].line;
-        curr_char_index = to_delete[0].col;
+        return null;
     }
 
     /// <summary>
