@@ -1645,6 +1645,7 @@ class Program
         while (Console.KeyAvailable) Console.ReadKey(true);
     }
 
+    private static string AI_RESPONSE = "";
     private static void OpenAIWindow()
     {
         if (noteEditor.HasUnsavedChanges()) AskToSaveUnsavedChanges("[yellow]Opening AI window... [/]but first:");
@@ -1653,14 +1654,13 @@ class Program
         AnsiConsole.Cursor.Show();
 
         string prompt = "";
-        string result = "";
         int buffer_width = Console.BufferWidth - 12;
 
         Action set_cursor = () => Console.SetCursorPosition(10 + prompt.Length, 1);
         Func<Layout> generate_AI_window_layout = () =>
         {
             var prompt_panel = new Panel(new Markup($"[blue]Prompt:[/] {prompt}")).BorderColor(Color.Blue).RoundedBorder().Expand();
-            var response_panel = new Panel(new Markup(result)).BorderColor(Color.Blue).RoundedBorder().Expand();
+            var response_panel = new Panel(new Markup(AI_RESPONSE)).BorderColor(Color.Blue).RoundedBorder().Expand();
 
             return new Layout()
             .SplitRows(
@@ -1689,12 +1689,11 @@ class Program
                 AnsiConsole.Cursor.Hide();
                 Console.Clear();
                 Console.Write("Thinking...");
-                result = AI.GetResponseAsync(prompt).GetAwaiter().GetResult();
+                AI_RESPONSE = AI.GetResponseAsync(prompt).GetAwaiter().GetResult();
                 while (Console.KeyAvailable) Console.ReadKey(true); // Clear input pressed while bot was loading
                 prompt = "";
                 Console.SetCursorPosition(0, 0);
                 AnsiConsole.Write(generate_AI_window_layout());
-                result = "";
                 set_cursor();
                 AnsiConsole.Cursor.Show();
                 continue;
