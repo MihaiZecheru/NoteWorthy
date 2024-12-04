@@ -174,8 +174,7 @@ class Program
                 // Check for auto save. if auto save is required, save the note. finally, continue.
                 if (editorFocused && noteEditor.CheckIfAutoSaveRequired())
                 {
-                    noteEditor.Save();
-                    Set_NoteEditorRequiresUpdate();
+                    HandleSave();
                 }
 
                 continue;
@@ -574,8 +573,7 @@ class Program
 
                 // Ctrl+S - Save note
                 case ConsoleKey.S:
-                    noteEditor.Save();
-                    Set_NoteEditorRequiresUpdate();
+                    HandleSave();
                     break;
 
                 // Ctrl+R - Reload note
@@ -1059,25 +1057,6 @@ class Program
                     if (requires_update)
                     {
                         Set_NoteEditorRequiresUpdate();
-                    }
-                    else
-                    {
-                        AnsiConsole.Cursor.Hide();
-                        Console.SetCursorPosition(2, Console.BufferHeight - 2);
-
-                        // Get position
-                        (int line, int col) = noteEditor.GetCursorPosition();
-                        line++; col++;
-
-                        // Get total line and char count
-                        int lineCount = noteEditor.GetLineCount();
-                        int charCount = noteEditor.GetNoteCharCount();
-
-                        // Rewrite footer data
-                        int space_count = 14 + 4 - GetDigitCount(line) - GetDigitCount(col) - GetDigitCount(lineCount) - GetDigitCount(charCount);
-                        Console.Write($"T({lineCount}, {charCount}){new string(' ', space_count)}P({line}, {col})");
-                        noteEditor.UpdateCursorPosInEditor();
-                        AnsiConsole.Cursor.Show();
                     }
 
                     break;
@@ -1725,5 +1704,12 @@ class Program
         }
 
         if (cursor_was_invisible) AnsiConsole.Cursor.Hide();
+    }
+
+    private static void HandleSave()
+    {
+        noteEditor.Save();
+        Set_NoteEditorRequiresUpdate();
+        SetTreeFooterRequiresUpdate();
     }
 }
