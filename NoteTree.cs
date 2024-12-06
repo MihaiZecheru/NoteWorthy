@@ -62,7 +62,7 @@ internal class NoteTree
     /// </summary>
     private List<TreeItem> LoadTreeItems(string directoryPath, TreeItem? parent, string? starting_selected_dir_path)
     {
-        IEnumerable<string> files = Directory.GetFiles(directoryPath).Where((string file) => file.EndsWith(".nw"));
+        IEnumerable<string> files = Directory.GetFiles(directoryPath).OrderBy(filePath => new FileInfo(filePath).CreationTime).Where((string file) => file.EndsWith(".nw"));
         string[] directories = Directory.GetDirectories(directoryPath);
 
         IEnumerable<TreeItem> _files = files.Select((string file_path) =>
