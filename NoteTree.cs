@@ -287,6 +287,8 @@ internal class NoteTree
                 .Validate(name =>
                 {
                     name = name.Trim();
+                    if (Settings.AutoCapitalizeNoteAndDirNames)
+                        name = TitleCase(name);
                     for (int i = 0; i < treeItemsInDir.Count; i++)
                     {
                         if (treeItemsInDir[i].Name == name || treeItemsInDir[i].Name == name + ".nw") return false;
