@@ -836,7 +836,7 @@ internal class NoteEditor
         {
             if (OnFirstLine()) return false;
             if (curr_line.Count + lines[curr_line_index - 1].Count > BUFFER_WIDTH) return false;
-            int prev_line_length = LineLength(curr_line_index - 1);
+            int prev_line_length = GetLineLength(curr_line_index - 1);
             lines[curr_line_index - 1].AddRange(curr_line);
             lines.RemoveAt(curr_line_index);
             curr_line_index--;
@@ -944,7 +944,7 @@ internal class NoteEditor
 
             if (OnFirstLine()) return;
             if (curr_line.Count + lines[curr_line_index - 1].Count > BUFFER_WIDTH) return;
-            int prev_line_length = LineLength(curr_line_index - 1);
+            int prev_line_length = GetLineLength(curr_line_index - 1);
             lines[curr_line_index - 1].AddRange(curr_line);
             lines.RemoveAt(curr_line_index);
             curr_line_index--;
@@ -1166,7 +1166,7 @@ internal class NoteEditor
     /// <summary>
     /// Return the amount of characters in the given <paramref name="_line_num"/>
     /// </summary>
-    private int LineLength(int _line_num)
+    private int GetLineLength(int _line_num)
     {
         return lines[_line_num].Count;
     }
