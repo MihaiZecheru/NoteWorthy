@@ -46,14 +46,9 @@ internal class NoteTree
     /// </summary>
     private int display_start_index = 0;
 
-    public NoteTree()
+    public NoteTree(string? starting_selected_dir_path = null)
     {
         // Load the notes from the notes directory
-        treeItems = LoadTreeItems(Program.NOTES_DIR_PATH, null, null);
-    }
-
-    public NoteTree(string starting_selected_dir_path)
-    {
         treeItems = LoadTreeItems(Program.NOTES_DIR_PATH, null, starting_selected_dir_path);
     }
 
@@ -144,9 +139,10 @@ internal class NoteTree
     }
 
     /// <summary>
-    /// Navigate to a TreeItem in the NoteTree. 
+    /// Navigate to a TreeItem in the NoteTree. Must be a directory.
     /// </summary>
     /// <param name="treeItem">Set to <see langword="null" /> to navigate to the root directory.</param>
+    /// <exception cref="Exception">If the TreeItem is not a directory.</exception>
     public void NavigateToTreeItemDirectory(TreeItem? treeItem)
     {
         if (treeItem != null && !treeItem.IsDir) throw new Exception("Cannot navigate to a file.");
