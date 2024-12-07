@@ -1683,11 +1683,29 @@ class Program
                 AnsiConsole.Cursor.Hide();
                 Console.Clear();
                 Console.Write("Thinking...");
-                AI_RESPONSE = AI.GetResponseAsync(prompt).GetAwaiter().GetResult();
+                
+                try
+                {
+                    AI_RESPONSE = AI.GetResponseAsync(prompt).GetAwaiter().GetResult();
+                } catch(Exception e)
+                {
+                    if (e.InnerException?.Message == "OPENAI_API_KEY environment variable is not set.")
+                        AI_RESPONSE = "[red]Note: AI key environment variable not set[/]";
+                    else throw e;
+                }
+
                 while (Console.KeyAvailable) Console.ReadKey(true); // Clear input pressed while bot was loading
                 prompt = "";
                 Console.SetCursorPosition(0, 0);
-                AnsiConsole.Write(generate_AI_window_layout());
+                try
+                {
+                    AnsiConsole.Write(generate_AI_window_layout());
+                }
+                catch (Exception e)
+                {
+                    AI_RESPONSE = "[red]There was an error displaying the AI response.[/]";
+                    AnsiConsole.Write(generate_AI_window_layout());
+                }
                 set_cursor();
                 AnsiConsole.Cursor.Show();
                 continue;
