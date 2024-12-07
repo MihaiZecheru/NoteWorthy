@@ -17,7 +17,7 @@ internal class AI
             ""model"": ""gpt-4"",
             ""messages"": [
             {{ ""role"": ""system"", ""content"": ""You are a helpful assistant that provides clear and concise answers, acting as a search engine. Use [yellow]text[/] to highlight important info. Make sure you close the markup with the closing tag: [/] ONLY use square brackets if it's for markup; if a square bracket is necessary, use a curly brace instead NOT MATTER WHAT."" }},
-                {{ ""role"": ""user"", ""content"": ""{prompt}"" }}
+                {{ ""role"": ""user"", ""content"": ""{EscapeQuotes(prompt)}"" }}
             ],
             ""temperature"": 0.2
         }}";
@@ -45,5 +45,10 @@ internal class AI
         {
             throw new Exception("Unable to parse the API response.");
         }
+    }
+
+    private static string EscapeQuotes(string s)
+    {
+        return s.Replace("\"", "\\\"");
     }
 }

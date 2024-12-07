@@ -1701,11 +1701,31 @@ class Program
                 {
                     AnsiConsole.Write(generate_AI_window_layout());
                 }
-                catch (Exception e)
+                catch
                 {
-                    AI_RESPONSE = "[red]There was an error displaying the AI response.[/]";
-                    AnsiConsole.Write(generate_AI_window_layout());
+                    try
+                    {
+                        // Try writing it again but using Text() instead of Markup() that might be causing the error
+                        AI_RESPONSE = "**There was an error with the markup, so it was ignored.**\n\n" + AI_RESPONSE;
+                        Console.Clear();
+                        var prompt_panel = new Panel(new Markup($"[blue]Prompt:[/] {prompt}")).BorderColor(Color.Blue).RoundedBorder().Expand();
+                        var response_panel = new Panel(new Text(AI_RESPONSE.Replace("[yellow]", "").Replace("[/]", ""))).BorderColor(Color.Blue).RoundedBorder().Expand();
+
+                        AnsiConsole.Write(new Layout()
+                        .SplitRows(
+                            new Layout("Prompt", prompt_panel).Size(3),
+                            new Layout("Response", response_panel)
+                        ));
+                    }
+                    catch
+                    {
+                        // If it STILL fails, show error message
+                        Console.Clear();
+                        AI_RESPONSE = "[red]There was an error displaying the AI response.[/]";
+                        AnsiConsole.Write(generate_AI_window_layout());
+                    }
                 }
+
                 set_cursor();
                 AnsiConsole.Cursor.Show();
                 continue;
