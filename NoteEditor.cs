@@ -430,8 +430,16 @@ internal class NoteEditor
         // True if the line was full and the last word/char was automatically moved to the next line
         bool auto_moved_to_next_line = false;
 
-        //  (insert mode) | (overwrite mode)
-        if ((LineIsFull() && insertModeOn) || (LineIsFull() && AtEndOfLine()))
+        // If the char is not ascii
+        if (c < 0 || c > 127)
+        {
+            c = RemoveDiacritics(c);
+        }
+
+        if (LineIsFull() && !AtEndOfLine()) return false;
+
+        // Check for auto move to next line
+        if (AtEndOfLine() && LineIsFull())
         {
             // Add new line
             if (curr_line_index < BUFFER_HEIGHT - 1)
@@ -457,7 +465,7 @@ internal class NoteEditor
             }
 
             // If line is multiple words (at least 3), then bring past word to next line
-            if (GetSpacesCountInLine(curr_line) >= 3 && c != ' ' && curr_line[curr_char_index - 1] != ' ')
+            if (c != ' ' && curr_line[curr_char_index - 1] != ' ' && GetSpacesCountInLine(curr_line) >= 3)
             {
                 // TODO: chek for edge case: "    - " space + dash combo, auto indent if that's the case
                 int start_of_last_word_index = FindIndexOf_StartOfPreviousWord() + 1; // +1 to leave the space
@@ -478,26 +486,20 @@ internal class NoteEditor
             }
         }
 
-        // If the char is not ascii
-        if (c < 0 || c > 127)
-        {
-            c = RemoveDiacritics(c);
-        }
-
         // Auto-capitalize the first word if the setting is on and the user just finished typing the word (i.e. if character to insert `c` is the first space in the line)
         // The 'or' condition is for checking for "    - " case
         if (
+            c == ' '
+            &&
             !direct_insert
             &&
             Settings.AutoCapitalizeLines
             &&
-            c == ' '
-            &&
-            GetSpacesCountInLine(curr_line) == 0
-            &&
             curr_line.Count >= 1
             &&
             char.IsAsciiLetterLower(curr_line[0].Char)
+            &&
+            GetSpacesCountInLine(curr_line) == 0
         )
         {
             // Capitalize the first char in the line
@@ -508,11 +510,11 @@ internal class NoteEditor
         }
         // auto-capitalize the first word but when it's after a dash + space ("    - ")
         else if (
+            c == ' '
+            &&
             !direct_insert
             &&
             Settings.AutoCapitalizeLines
-            &&
-            c == ' '
             &&
             curr_line.Count >= 7 && curr_line[0] == ' ' && curr_line[1] == ' ' && curr_line[2] == ' ' && curr_line[3] == ' ' && curr_line[4] == '-' && curr_line[5] == ' '
             && GetSpacesCountInLine(curr_line) == 5 // checking for if this space is the first space not including the spaces in "    - "
@@ -525,11 +527,11 @@ internal class NoteEditor
         }
         // Check to auto-capitalize the letter 'i'. Works when the is proceeds and follows a space, ex: ' i '
         else if (
+            c == ' '
+            &&
             !direct_insert
             &&
             Settings.AutoCapitalizeLines
-            &&
-            c == ' '
             &&
             curr_line.Count >= 3
             &&
@@ -607,7 +609,7 @@ internal class NoteEditor
 
             // Before adding the char, check for the dash + space indent thing.
             // If a dash then a space is typed and the line prior contains text (isn't empty), the dash will automatically be tabbed
-            if (!direct_insert && curr_line.Count == 1 && curr_line[0] == '-' && c == ' ' && curr_line_index >= 1 && lines[curr_line_index - 1].Count != 0)
+            if (c == ' ' && !direct_insert && curr_line.Count == 1 && curr_line[0] == '-' && curr_line_index >= 1 && lines[curr_line_index - 1].Count != 0)
             {
                 // _char is a space here
                 curr_line = new List<ColorChar>()
@@ -620,7 +622,7 @@ internal class NoteEditor
             {
                 // Add char normally
                 curr_line.Add(_char);
-                if (_char.GetBytes().color_byte == 0)
+                if (_char.Color == null)
                 {
                     Console.Write(_char.Char);
                     update_display = false;
@@ -631,21 +633,57 @@ internal class NoteEditor
         {
             if (insertModeOn)
             {
-                // Insert the char at the current position
-                curr_line.Insert(curr_char_index, _char);
-
-                if (_char.GetBytes().color_byte == 0)
+                // Add the char to the end of the line
+                if (curr_char_index == curr_line.Count - 1)
                 {
-                    Console.Write(_char.Char.ToString() + new string(curr_line.Select(c => c.Char).ToArray()).Substring(curr_char_index + 1));
-                    update_display = false;
+                    curr_line.Add(_char);
+
+                    if (_char.Color == null)
+                    {
+                        Console.Write(_char.Char);
+                    }
+                    else
+                    {
+                        AnsiConsole.Markup($"[{_char.Color.Value}]{_char.Char}[/]");
+                    }
                 }
+                else
+                {
+                    // Insert the char at the current position
+                    curr_line.Insert(curr_char_index, _char);
+                    
+                    // Logic for rewrite the line as the char was inserted
+                    StringBuilder markup = new(capacity: (curr_line.Count - curr_char_index - 1) * 5);
+
+                    if (_char.Color == null)
+                    {
+                        markup.Append(_char.Char);
+                    }
+                    else
+                    {
+                        markup.Append($"[{_char.Color.Value}]{_char.Char}[/]");
+                    }
+
+                    for (int i = curr_char_index + 1; i < curr_line.Count; i++)
+                    {
+                        ColorChar _c = curr_line[i];
+                        if (_c.Color == null)
+                            markup.Append(HandleSquareBrackets(_c.Char));
+                        else
+                            markup.Append($"[{_c.Color.Value}]{_c.Char}[/]");
+                    }
+
+                    AnsiConsole.Markup(markup.ToString());
+                }
+
+                update_display = false;
             }
             else
             {
                 // Overwrite the char at the current positon
                 curr_line[curr_char_index] = _char;
 
-                if (_char.GetBytes().color_byte == 0)
+                if (_char.Color == null)
                 {
                     Console.Write(_char.Char);
                     update_display = false;
@@ -659,14 +697,27 @@ internal class NoteEditor
         // If the char to insert is a space, check for a possible vocab definition (FOR Settings.AutoColorVocabDefinitions)
         // Vocab definitions are detected when there is a colon followed by a space in the line prior to the 2/5-point of the line 
         // The : cannot be the first character
-        List<char> line_chars = curr_line.Select(l => l.Char).ToList();
-        if (Settings.AutoColorVocabDefinitions && c == ' ' && line_chars.Count >= 3 && line_chars.Contains(':') && line_chars.IndexOf(':') != 0 && line_chars.IndexOf(':') <= BUFFER_WIDTH * 2/5)
+        if (c == ' ' && Settings.AutoColorVocabDefinitions && curr_char_index >= 3 && lines[curr_line_index][curr_char_index - 1] == ':' && curr_char_index <= BUFFER_WIDTH * 2/5)
         {
             int tmp = curr_char_index;
-            int colon_index = line_chars.IndexOf(':');
 
             // Color the word up to the colon
-            for (int i = 0; i < colon_index; i++)
+            for (int i = 0; i < curr_char_index - 1; i++)
+            {
+                curr_line[i] = new ColorChar((byte)curr_line[i].Char, Settings.PrimaryColor);
+            }
+
+            curr_char_index = tmp;
+            vocab_definition_was_auto_colored = true;
+        }
+        // If the char to insert is a space, check for a possible vocab definition (FOR Settings.AutoColorVocabDefinitions)
+        // Alternate vocab definition is: "word - definition". Note the ' - ' in the middle
+        else if (c == ' ' && Settings.AutoColorVocabDefinitions && curr_char_index >= 3 && lines[curr_line_index][curr_char_index - 2] == ' ' && lines[curr_line_index][curr_char_index - 1] == '-' && curr_char_index <= BUFFER_WIDTH * 2/5)
+        {
+            int tmp = curr_char_index;
+
+            // Color the word up to the dash
+            for (int i = 0; i < curr_char_index - 2; i++)
             {
                 curr_line[i] = new ColorChar((byte)curr_line[i].Char, Settings.PrimaryColor);
             }
@@ -1384,7 +1435,7 @@ internal class NoteEditor
 
     private Markup GetDisplayMarkup()
     {
-        StringBuilder s = new(capacity: BUFFER_HEIGHT * BUFFER_WIDTH);
+        StringBuilder s = new(capacity: BUFFER_HEIGHT * BUFFER_WIDTH * 2);
         for (int i = 0; i < this.lines.Count; i++)
         {
             string line_number = (i + 1).ToString("D2");
@@ -1836,7 +1887,7 @@ internal class NoteEditor
             subtitle_line.InsertRange(0, Enumerable.Repeat(SPACE, spaces_to_add));
             for (int i = 0; i < subtitle_line.Count; i++)
             {
-                if (subtitle_line[i].GetBytes().color_byte == 0)
+                if (subtitle_line[i].Color == null)
                 {
                     subtitle_line[i] = new ColorChar((byte)subtitle_line[i].Char, Settings.PrimaryColor);
                 }

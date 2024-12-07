@@ -370,8 +370,23 @@ class Program
 
                 // Ctrl+R - Reload the tree
                 case ConsoleKey.R:
-                    noteTree = new NoteTree();
                     noteEditor = new NoteEditor(null);
+                    TreeItem selected_tree_item = noteTree.GetSelectedTreeItem()!;
+                    if (selected_tree_item.Parent == null)
+                    {
+                        noteTree = new NoteTree();
+                    }
+                    else
+                    {
+                        if (Directory.Exists(selected_tree_item.Parent.FilePath))
+                        {
+                            noteTree = new NoteTree(selected_tree_item.Parent.FilePath);
+                        }
+                        else
+                        {
+                            noteTree = new NoteTree();
+                        }
+                    }
                     noteTree.SetVisible();
                     Set_NoteEditorRequiresUpdate();
                     SetTreeFooterRequiresUpdate();
