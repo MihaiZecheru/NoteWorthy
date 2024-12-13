@@ -66,6 +66,9 @@ internal class NoteTree
             
             if (len > BUFFER_WIDTH)
             {
+                Console.WriteLine($"File name is too long. Must be less than {BUFFER_WIDTH} characters long. Is {len} long. Path: {file_path}");
+                Console.WriteLine("Press any key to continue.");
+                Console.ReadKey(true);
                 throw new FileLoadException($"File name is too long. Must be less than {BUFFER_WIDTH} characters long. Is {len} long. Path: {file_path}");
             }
 
