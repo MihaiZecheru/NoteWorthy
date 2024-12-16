@@ -456,7 +456,7 @@ internal class NoteEditor
                 && curr_line[3] == ' ' && curr_line[4] == '-' && curr_line[5] == ' ';
 
             List<char> chars = curr_line.Select(c => c.Char).ToList();
-            bool curr_line_is_a_vocab_definition = chars.IndexOf(':') >= 3 && chars.Contains(':') && chars.IndexOf(':') <= BUFFER_WIDTH * 2 / 5;
+            bool curr_line_is_a_vocab_definition =  (chars.Contains(':') || chars.Contains('-')) && (chars.IndexOf(':') >= 3 || chars.IndexOf('-') >= 3) && chars.IndexOf(':') <= BUFFER_WIDTH * 2 / 5;
 
             // Check for auto indent due to the overflowing line being a dash + space indent
             if (curr_line_is_a_dash_indent)
@@ -472,6 +472,13 @@ internal class NoteEditor
                 lines[curr_line_index + 1] = new List<ColorChar>()
                 {
                     SPACE, SPACE, SPACE, SPACE, SPACE
+                };
+            }
+            else if (curr_line_is_a_vocab_definition && chars.IndexOf('-') == 4)
+            {
+                lines[curr_line_index + 1] = new List<ColorChar>()
+                {
+                    SPACE, SPACE, SPACE, SPACE, SPACE, SPACE
                 };
             }
             else if (curr_line_is_a_vocab_definition)
@@ -493,13 +500,13 @@ internal class NoteEditor
                 curr_line_index++;
                 curr_char_index = word.Count;
                 if (curr_line_is_a_dash_indent) curr_char_index += 6;
-                else if (curr_line_is_a_vocab_definition) curr_char_index += chars.IndexOf(':') == 3 ? 5 : 4;
+                else if (curr_line_is_a_vocab_definition) curr_char_index += (chars.IndexOf(':') == 3) ? 5 : (chars.IndexOf('-') == 4) ? 6 : 4;
             }
             else
             {
                 curr_line_index++;
                 if (curr_line_is_a_dash_indent) curr_char_index = 6;
-                else if (curr_line_is_a_vocab_definition) curr_char_index = chars.IndexOf(':') == 3 ? 5 : 4;
+                else if (curr_line_is_a_vocab_definition) curr_char_index = (chars.IndexOf(':') == 3) ? 5 : (chars.IndexOf('-') == 3) ? 6 : 4;
                 else curr_char_index = 0;
                 // If the last char in the line is a space, don't worry bout bringing the last word over;
                 // let the user write his word on the new line
