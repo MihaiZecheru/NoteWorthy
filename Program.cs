@@ -1115,6 +1115,11 @@ class Program
             return;
         }
 
+        if (Settings.AutoCapitalizeNoteAndDirNames)
+        {
+            new_name = NoteTree.TitleCase(new_name!);
+        }
+
         if (selected_item.IsDir)
         {
             // Rename in file system
@@ -1128,17 +1133,17 @@ class Program
 
             // Rename in file system
             File.Move(selected_item.FilePath, Path.Combine(Path.GetDirectoryName(selected_item.FilePath)!, new_name));
+        }
 
-            // Parent is starting dir so remake editor normally
-            if (selected_item.Parent == null)
-            {
-                noteTree = new NoteTree();
-            }
-            // Parent is a different dir so go to it
-            else
-            {
-                noteTree = new NoteTree(selected_item.Parent.FilePath);
-            }
+        // Parent is starting dir so remake editor normally
+        if (selected_item.Parent == null)
+        {
+            noteTree = new NoteTree();
+        }
+        // Parent is a different dir so go to it
+        else
+        {
+            noteTree = new NoteTree(selected_item.Parent.FilePath);
         }
 
         // Remake tree in order to reflect changes

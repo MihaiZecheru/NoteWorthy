@@ -552,7 +552,7 @@ internal class NoteTree
         BUFFER_WIDTH = DISPLAY_WIDTH - 4;
     }
 
-    private static string TitleCase(string s)
+    public static string TitleCase(string s)
     {
         string _s = "";
 
