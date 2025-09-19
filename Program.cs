@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using TextCopy;
+using DotNetEnv;
 
 namespace NoteWorthy;
 
@@ -49,6 +50,7 @@ class Program
     public static void Main()
     {
         // Setup
+        Env.Load();
         Enable_CtrlC_Shortcut();
         Allow_CtrlS_Shortcut();
         SetBlockCursor();
