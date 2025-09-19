@@ -611,7 +611,7 @@ internal class NoteEditor
                 char char_to_color = curr_line[curr_char_index - 1].Char;
 
                 // Do not color 'A', 'a', 'I', or 'i'
-                if (char.ToLower(char_to_color) != 'a' && char.ToLower(char_to_color) != 'i')
+                if (char.ToLower(char_to_color) != 'a' && char.ToLower(char_to_color) != 'i' && char_to_color != '+')
                 {
                     // Replace the variable with a colored version of the char
                     auto_capitalization_slash_auto_color_info = ((curr_line_index, curr_char_index - 1), true);
