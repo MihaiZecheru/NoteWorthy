@@ -489,8 +489,7 @@ class Program
                     {
                         if (noteEditor.HasUnsavedChanges())
                         {
-                            bool save_changes = AskToSaveUnsavedChanges("[yellow]Opening note[/]... but first:");
-                            if (save_changes) noteEditor.Save();
+                            AskToSaveUnsavedChanges("[yellow]Opening note[/]... but first:");
                         }
 
                         try
@@ -596,8 +595,7 @@ class Program
                     // Ask if they want a reload while there are unsaved changes
                     if (noteEditor.HasUnsavedChanges())
                     {
-                        bool save_changes = AskToSaveUnsavedChanges("[yellow]Reloading note...[/] but first:");
-                        if (save_changes) noteEditor.Save();
+                        AskToSaveUnsavedChanges("[yellow]Reloading note...[/] but first:");
                     }
 
                     // Can't reload if there's no note open
@@ -630,8 +628,7 @@ class Program
                 case ConsoleKey.W:
                     if (noteEditor.HasUnsavedChanges())
                     {
-                        bool save_changes = AskToSaveUnsavedChanges("[yellow]Closing note... [/]but first:");
-                        if (save_changes) noteEditor.Save();
+                        AskToSaveUnsavedChanges("[yellow]Closing note... [/]but first:");
                     }
 
                     noteEditor = new NoteEditor(null);
@@ -1554,8 +1551,7 @@ class Program
     {
         if (noteEditor.GetNotePath() != null && noteEditor.HasUnsavedChanges())
         {
-            bool save_changes = AskToSaveUnsavedChanges("[yellow]Closing NoteWorthy... [/]but first:");
-            if (save_changes) noteEditor.Save();
+            AskToSaveUnsavedChanges("[yellow]Closing NoteWorthy... [/]but first:");
         }
 
         Console.Clear();
