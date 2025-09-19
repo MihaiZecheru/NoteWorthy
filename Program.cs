@@ -1181,6 +1181,7 @@ class Program
             if (keyInfo.Key == ConsoleKey.Y)
             {
                 AnsiConsole.Cursor.Show();
+                HandleSave();
                 return true;
             }
             else if (keyInfo.Key == ConsoleKey.N)
