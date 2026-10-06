@@ -30,8 +30,6 @@ Ctrl+UpArrow - Preview the previous note
 
 Ctrl+DownArrow - Preview the next note
 
-Ctrl+W - Close the editor
-
 Ctrl+N - Create new note
 
 Ctrl+M - Create new folder
@@ -84,7 +82,7 @@ Ctrl+S - Save the note
 
 Ctrl+D - Delete current line
 
-Ctrl+W - Close the editor
+Ctrl+W - Delete word
 
 Ctrl+Z - Undo
 
