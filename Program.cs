@@ -341,25 +341,6 @@ class Program
                     HandleCtrlDownArrow();
                     break;
 
-                // Ctrl+W - Close the note in the editor if there's a note, otherwise close the app
-                case ConsoleKey.W:
-                    if (noteEditor.GetNotePath() == null)
-                    {
-                        // If the user presses Ctrl+W when there is no note, close the app
-                        ExitApplication();
-                    }
-                    else
-                    {
-                        noteEditor = new NoteEditor(null);
-                        noteTree.SetVisible();
-                        Set_NoteEditorRequiresUpdate();
-                        // Move focus to the tree
-                        if (noteTree.IsVisible()) editorFocused = false;
-                        noteTree.Set_RequiresUpdate();
-                        SetTreeFooterRequiresUpdate();
-                    }
-                    break;
-
                 // Ctrl+N - Create new file
                 case ConsoleKey.N:
                     HandleCreateNewFile();
@@ -626,19 +607,10 @@ class Program
                     SetTreeFooterRequiresUpdate();
                     break;
 
-                // Ctrl+W - Close currently displayed note
+                // Ctrl+W - Delete word like in terminal
                 case ConsoleKey.W:
-                    if (noteEditor.HasUnsavedChanges())
-                    {
-                        AskToSaveUnsavedChanges("[yellow]Closing note... [/]but first:");
-                    }
-
-                    noteEditor = new NoteEditor(null);
+                    noteEditor.DeleteWordWithBackspace();
                     Set_NoteEditorRequiresUpdate();
-                    // Move focus to the tree
-                    if (noteTree.IsVisible()) editorFocused = false;
-                    noteTree.Set_RequiresUpdate();
-                    noteTree.SetVisible();
                     SetTreeFooterRequiresUpdate();
                     break;
 
