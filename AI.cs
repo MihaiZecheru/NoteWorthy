@@ -1,29 +1,48 @@
 ﻿using System.Text;
-using System.Net.Http.Headers;
-using System.Text.RegularExpressions;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace NoteWorthy;
 
 internal class AI
 {
-    private static readonly string API_KEY = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new InvalidOperationException("OPENAI_API_KEY environment variable is not set.");
+    private static readonly string API_KEY = Environment.GetEnvironmentVariable("GEMINI_API_KEY")
+        ?? throw new InvalidOperationException("GEMINI_API_KEY environment variable is not set.");
+
+    private const string Model = "gemini-3.1-flash-lite";
+
     public static async Task<string> GetResponseAsync(string prompt)
     {
         using HttpClient client = new HttpClient();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", API_KEY);
 
-        var requestBody = $@"
-        {{
-            ""model"": ""gpt-4"",
-            ""messages"": [
-            {{ ""role"": ""system"", ""content"": ""You are a helpful assistant that provides clear and concise answers, acting as a search engine. Use [yellow]text[/] to highlight important info. Make sure you close the markup with the closing tag: [/] ONLY use square brackets if it's for markup; if a square bracket is necessary, use a curly brace instead NO MATTER WHAT."" }},
-                {{ ""role"": ""user"", ""content"": ""{EscapeQuotes(prompt)}"" }}
-            ]
-        }}";
+        string url = $"https://generativelanguage.googleapis.com/v1beta/models/{Model}:generateContent?key={API_KEY}";
 
-        StringContent httpContent = new StringContent(requestBody, Encoding.UTF8, "application/json");
+        var payload = new
+        {
+            system_instruction = new
+            {
+                parts = new[]
+                {
+                    new { text = "You are a helpful assistant that provides clear and concise answers, acting as a search engine. Use [yellow]text[/] to highlight important info. Make sure you close the markup with the closing tag: [/] ONLY use square brackets if it's for markup; if a square bracket is necessary, use a curly brace instead NO MATTER WHAT." }
+                }
+            },
+            contents = new[]
+            {
+                new
+                {
+                    role = "user",
+                    parts = new[]
+                    {
+                        new { text = prompt }
+                    }
+                }
+            }
+        };
 
-        HttpResponseMessage response = await client.PostAsync("https://api.openai.com/v1/chat/completions", httpContent);
+        string json = JsonSerializer.Serialize(payload);
+        using StringContent content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        HttpResponseMessage response = await client.PostAsync(url, content);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -33,21 +52,9 @@ internal class AI
 
         string responseContent = await response.Content.ReadAsStringAsync();
 
-        string pattern = "\"content\": \"(.*?)\",";
-        Match match = Regex.Match(responseContent, pattern);
+        JsonNode? doc = JsonNode.Parse(responseContent);
+        string? text = doc?["candidates"]?[0]?["content"]?["parts"]?[0]?["text"]?.GetValue<string>();
 
-        if (match.Success)
-        {
-            return match.Groups[1].Value.Replace("\\n", "\n").Replace("\\\"", "\"").Trim();
-        }
-        else
-        {
-            throw new Exception("Unable to parse the API response.");
-        }
-    }
-
-    private static string EscapeQuotes(string s)
-    {
-        return s.Replace("\"", "\\\"");
+        return text?.Trim() ?? throw new Exception("Unable to parse text from Gemini response.");
     }
 }
