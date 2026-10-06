@@ -21,76 +21,141 @@ This works on both the tree and editor. Here are the other shortcuts for both th
 
 ## Tree
 Ctrl+Q - Quit NoteWorthy
+
 Ctrl+L - Toggle focus to the editor
+
 Ctrl+O - Open current directory in file explorer
+
 Ctrl+UpArrow - Preview the previous note
+
 Ctrl+DownArrow - Preview the next note
+
 Ctrl+W - Close the editor
+
 Ctrl+N - Create new note
+
 Ctrl+M - Create new folder
+
 Ctrl+R - Reload the tree
+
 Ctrl+D - Delete the selected tree item
+
 Ctrl+8 - Open the settings file (+shift to reload it)
+
 Ctrl+1 - Toggle tree visibility
+
 Ctrl+H - Toggle this help panel
 
 UpArrow - Move selection up
+
 DownArrow - Move selection down
+
 Home - Move selection to top of tree
+
 End - Move selection to the bottom of tree
+
 Escape - Go to parent directory
+
 Enter - Open the selected note
+
 Spacebar - Preview the selected note
+
 Tab - Switch focus to the editor
+
 H - Toggle this help panel
+
 F2 - Rename the selected item
+
 N - Create new Note
+
 M - Create new Folder
+
 Delete - Delete the selected tree file/folder
+
 Backspace - Delete the selected tree file/folder
 
 ## Editor
+
 Ctrl+Q - Quit NoteWorthy
+
 Ctrl+L - Print dashed-line (if line empty)
+
 Ctrl+S - Save the note
+
 Ctrl+D - Delete current line
+
 Ctrl+W - Close the editor
+
 Ctrl+Z - Undo
+
 Ctrl+Y - Redo
+
 Ctrl+End - Move cursor to the end of note
+
 Ctrl+Home - Move cursor to start of note
+
 Ctrl+LeftArrow - Move to previous word (+shift to select)
+
 Ctrl+RightArrow - Move to next word (+shift to select)
+
 Ctrl+C - Copy selected text
+
 Ctrl+A - Select the entire note
+
 Ctrl+K - Toggle insert mode
+
 Ctrl+Backspace - Delete word
+
 Ctrl+Delete - Delete word (to the right of cursor)
+
 Ctrl+N - Create new note
+
 Ctrl+M - Create new folder
+
 Ctrl+O - Open current directory in file explorer
+
 Ctrl+8 - Open the settings file (+shift to reload it)
+
 Ctrl+UpArrow - Preview the previous note
+
 Ctrl+DownArrow - Preview the next note
+
 Ctrl+B - Toggle primary color (+shift for activating the color for just one char)
+
 Ctrl+U - Toggle secondary color (+shift for activating the color for just one char)
+
 Ctrl+I - Toggle tertiary color (+shift for activating the color for just one char)
+
 Ctrl+1 - Toggle tree visibility
+
 Ctrl+G - Toggle line numbers
+
 Ctrl+H - Toggle this help panel
 
 Escape - Unfocus editor / focus tree `OR` unselect the selected text 
+
 Enter - Insert new line
+
 UpArrow - Move cursor up (+shift to select)
+
 DownArrow - Move cursor down (alias: shift+enter) (+shift to select)
+
 LeftArrow - Move cursor left (+shift to move line)
+
 RightArrow - Move cursor right (+shift to move line)
+
 End - Move cursor to the end of the line (+shift to select)
+
 Home - Move cursor to the beginning of the line (+shift to select)
+
 Insert - Toggle insert mode
+
 Backspace - Delete character
+
 Delete - Delete character (to the right)
+
 F2 - Rename the current note
+
 Tab - Insert tab
 
 Notes:
